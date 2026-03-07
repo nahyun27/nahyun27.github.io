@@ -53,10 +53,10 @@ LLM 보안과 적대적 공격/방어에 관심이 많습니다.
 | 프로젝트 | 설명 | 기술 스택 |
 |---------|------|----------|
 | 🔍 [Paperprobe](https://github.com/nahyun27/paperprobe) | RAG 기반 논문 Q&A · Prompt Injection 탐지 | FastAPI, ChromaDB, Next.js |
-| 🕸️ PaperMesh | arxiv 논문 피드 큐레이션 *(개발 중)* | FastAPI, PostgreSQL, Next.js |
-| 💽 SSD WAF Optimization | Hot/Cold 데이터 분리로 WAF 48% 감소 | C, FEMU |
-| 🎙️ PerSI | 청각장애인을 위한 화자 인식 시스템 | wav2vec2, pyannote, PyTorch |
-| 💊 ToFindPill | 사진으로 약 식별하는 모바일 앱 | YOLOv5/v8, React Native |
+| 🕸️ [PaperMesh](https://github.com/nahyun27/papermesh) | arxiv 논문 피드 큐레이션 *(개발 중)* | FastAPI, PostgreSQL, Next.js |
+| 💽 [SSD WAF Optimization](https://github.com/nahyun27/femu-hotcold-ftl) | Hot/Cold 데이터 분리로 WAF 48% 감소 | C, FEMU |
+| 🎙️ [PerSI](https://github.com/PerSI-Org) | 청각장애인을 위한 화자 인식 시스템 | wav2vec2, pyannote, PyTorch |
+| 💊 [ToFindPill](https://github.com/ToFindPill) | 사진으로 약 식별하는 모바일 앱 | YOLOv5/v8, React Native |
 
 ---
 
