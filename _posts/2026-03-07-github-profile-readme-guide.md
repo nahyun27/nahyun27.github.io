@@ -4,7 +4,7 @@ title: "GitHub 프로필 README 꾸미기"
 date: 2026-03-07 18:00:00 +0900
 categories: [Development, GitHub]
 tags: [github, markdown, profile, readme, shields-io, badges]
-description: "GitHub 프로필 README를 활용해 나만의 개발자 포트폴리오를 만드는 방법. 간결하고 시각적으로."
+description: "깃허브 스탯, Solved.ac 프로필, 뱃지, 통계 등을 활용한 GitHub 프로필 README 꾸미기"
 image:
   path: /assets/img/posts/github-profile/cover.png
   alt: GitHub Profile README Customization
@@ -12,7 +12,8 @@ image:
 
 ## GitHub 프로필 README란?
 
-GitHub 프로필 페이지 상단에 표시되는 마크다운 문서다. 자신을 소개하고, 프로젝트를 홍보하고, 기술 스택을 보여줄 수 있다.
+GitHub 프로필 페이지 상단에 표시되는 마크다운 문서다. 
+자신을 소개하고, 프로젝트를 홍보하고, 기술 스택을 보여줄 수 있다.
 
 2020년 7월에 추가된 기능인데, 이제는 필수가 됐다.
 
