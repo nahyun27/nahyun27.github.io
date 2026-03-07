@@ -31,7 +31,7 @@ GitHub 프로필 페이지 상단에 표시되는 마크다운 문서다. 자신
 
 저장소에 `README.md` 파일을 만들면 자동으로 프로필에 표시된다.
 
-![profile-setup](/assets/img/posts/github-profile/profile-setup.png)
+<!-- ![profile-setup](/assets/img/posts/github-profile/profile-setup.png) -->
 
 ---
 
