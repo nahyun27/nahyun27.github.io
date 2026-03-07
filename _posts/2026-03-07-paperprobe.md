@@ -2,7 +2,7 @@
 layout: post
 title: "Paperprobe — RAG 기반 논문 Q&A 시스템 개발기"
 date: 2026-03-07 00:00:00 +0900
-categories: [Project]
+categories: [Projects, RAG]
 tags: [RAG, FastAPI, ChromaDB, Next.js, D3.js, Prompt Injection]
 image:
   path: /assets/img/posts/paperprobe/demo.gif
