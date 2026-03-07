@@ -4,6 +4,12 @@ title: "Paperprobe — RAG 기반 논문 Q&A 시스템 개발기"
 date: 2026-03-07 00:00:00 +0900
 categories: [Project]
 tags: [RAG, FastAPI, ChromaDB, Next.js, D3.js, Prompt Injection]
+image:
+  path: /assets/img/posts/paperprobe/demo.gif
+  alt: Paperprobe - RAG 기반 논문 Q&A 시스템
+
+keywords: [RAG, FastAPI, ChromaDB, Next.js, D3.js, Prompt Injection]
+author: Nahyun Kim
 ---
 
 대학원생이라면 논문을 읽을 때마다 비슷한 상황이 반복된다는 것을 알 수 있다. 
