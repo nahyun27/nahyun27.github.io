@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "AI 시대, 개발자에게 필요한 것"
-date: 2026-03-10 14:00:00 +0900
-categories: [Perspective, Career]
+date: 2026-03-7 14:00:00 +0900
+categories: [Perspective]
 tags: [ai, career, future, developer, researcher]
 description: "AI 보안 연구자이자 개발자가 본 AI 시대. 활용 능력과 기초 실력, 두 마리 토끼를 잡는 법."
 image:
