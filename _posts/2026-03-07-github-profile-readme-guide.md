@@ -270,7 +270,6 @@ Adversarial Attacks • Audio Security (ASR) • Privacy-Preserving ML • Trust
 
 **잔디를 키우는 법**:
 - 매일 조금이라도 커밋
-- 의미 있는 작업 (README 수정만 반복하지 말기)
 - 작은 프로젝트라도 꾸준히
 - 1일 1커밋 습관 만들기
 
