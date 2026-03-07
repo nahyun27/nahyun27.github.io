@@ -12,7 +12,6 @@ image:
   alt: Stack Tower - 3D 타이밍 쌓기 게임
 
 keywords: [Three.js 게임, 웹 게임 개발, 물리 엔진, Cannon.js, WebGL, 게임 최적화]
-author: Nahyun Kim
 ---
 
 ## 시작

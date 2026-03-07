@@ -11,7 +11,6 @@ image:
   alt: Rise of the Half Moon - 달 위상 전략 카드 게임
 
 keywords: [Next.js 게임, 웹 게임 개발, D3.js, 그래프 알고리즘, AI 게임, TypeScript]
-author: Nahyun Kim
 ---
 
 ## 시작

@@ -9,7 +9,6 @@ image:
   alt: Paperprobe - RAG 기반 논문 Q&A 시스템
 
 keywords: [RAG, FastAPI, ChromaDB, Next.js, D3.js, Prompt Injection]
-author: Nahyun Kim
 ---
 
 대학원생이라면 논문을 읽을 때마다 비슷한 상황이 반복된다는 것을 알 수 있다. 
