@@ -1,5 +1,6 @@
 ---
-title: "GitHub 프로필 꾸미기: README로 나를 표현하는 법"
+layout: post
+title: "GitHub 프로필 README 꾸미기"
 date: 2026-03-07 18:00:00 +0900
 categories: [Development, GitHub]
 tags: [github, markdown, profile, readme, shields-io, badges]
