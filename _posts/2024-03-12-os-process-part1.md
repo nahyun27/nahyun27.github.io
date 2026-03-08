@@ -7,8 +7,7 @@ tags: [operating-system, linux, process, fork, exec, pcb, nsh, shell]
 image:
   path: /assets/img/os/process-creation.png
   alt: Process Creation in Linux
-# math: false
-# series: 운영체제 Deep Dive
+
 ---
 
 ## 들어가며
