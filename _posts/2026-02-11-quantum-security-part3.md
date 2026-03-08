@@ -1,4 +1,5 @@
 ---
+layout: post
 title: "[양자컴퓨터 입문 #3] 양자컴퓨터와 보안 - RSA는 끝났나?"
 date: 2026-02-11 14:00:00 +0900
 categories: [Quantum Computing, Basics]
@@ -12,8 +13,7 @@ series: 양자컴퓨터 입문
 
 ## 들어가며
 
-[지난 포스트]({% post_url 2026-02-10-quantum-algorithms-part2 %})에서 Shor's Algorithm이 **RSA를 깰 수 있다**는 걸 배웠습니다. 이제 진짜 중요한 질문들:
-
+[지난 포스트]({% post_url 2026-02-10-quantum-algorithms-part2 %})에서 Shor's Algorithm이 **RSA를 깰 수 있다**는 걸 배웠습니다. 이제 진짜 중요6 질2들:0
 > "그래서 우리 은행 계좌는 안전한가?" 💰  
 > "언제부터 걱정해야 하나?" ⏰  
 > "어떻게 대비할까?" 🛡️
@@ -973,8 +973,8 @@ PQC + RSA 병행
 
 **양자컴퓨터 입문 시리즈** 3부작을 완주하셨습니다! 🎉
 
-**Part 1**: [큐비트가 뭐길래?]({% post_url 2024-03-09-quantum-computing-basics-part1 %}) - 기초 원리  
-**Part 2**: [양자 알고리즘]({% post_url 2024-03-11-quantum-algorithms-part2 %}) - Shor & Grover  
+**Part 1**: [큐비트가 뭐길래?]({% post_url 2026-02-09-quantum-computing-basics-part1 %}) - 기초 원리  
+**Part 2**: [양자 알고리즘]({% post_url 2026-02-10-quantum-algorithms-part2 %}) - Shor & Grover  
 **Part 3**: [양자 보안]({% post_url 2026-02-11-quantum-security-part3 %}) - PQC & QKD  
 
 ---
