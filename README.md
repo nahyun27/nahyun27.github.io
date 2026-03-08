@@ -64,8 +64,17 @@ my-interests/
 
 ## 📝 Latest Posts
 
-<!-- BLOG-POST-LIST:START -->
-<!-- BLOG-POST-LIST:END -->
+<!-- BLOG-POST-LIST:START -->- **[GitHub 프로필 README 꾸미기](https://nahyun27.github.io/posts/github-profile-readme-guide/)** - 
+  &lt;div type=&quot;text/html&quot; src=&quot;https://nahyun27.github.io/posts/github-profile-readme-guide/&quot;/&gt; 
+  _Published: $date_- **[AI 시대, 개발자에게 필요한 것](https://nahyun27.github.io/posts/ai-era-developer-balance/)** - 
+  &lt;div type=&quot;text/html&quot; src=&quot;https://nahyun27.github.io/posts/ai-era-developer-balance/&quot;/&gt; 
+  _Published: $date_- **[Paperprobe: RAG 기반 논문 Q&amp;A 시스템 개발기](https://nahyun27.github.io/posts/paperprobe/)** - 
+  &lt;div type=&quot;text/html&quot; src=&quot;https://nahyun27.github.io/posts/paperprobe/&quot;/&gt; 
+  _Published: $date_- **[Rise of the Half Moon: 달 위상 전략 카드 게임 개발기](https://nahyun27.github.io/posts/rise-of-halfmoon-development/)** - 
+  &lt;div type=&quot;text/html&quot; src=&quot;https://nahyun27.github.io/posts/rise-of-halfmoon-development/&quot;/&gt; 
+  _Published: $date_- **[Stack Tower: 3D 타이밍 게임으로 배운 물리 엔진과 사용자 경험](https://nahyun27.github.io/posts/stack-tower-3d-physics-game/)** - 
+  &lt;div type=&quot;text/html&quot; src=&quot;https://nahyun27.github.io/posts/stack-tower-3d-physics-game/&quot;/&gt; 
+  _Published: $date_<!-- BLOG-POST-LIST:END -->
 
 ---
 
