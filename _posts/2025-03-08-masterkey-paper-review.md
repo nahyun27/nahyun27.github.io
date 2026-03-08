@@ -1,4 +1,5 @@
 ---
+layout: post
 title: "[논문 리뷰] MasterKey: Speaker Verification 시스템을 무너뜨리는 실용적 백도어 공격"
 date: 2025-03-08 16:00:00 +0900
 categories: [Paper Review, Security]
@@ -30,47 +31,57 @@ math: true
 
 ### Speaker Verification이 중요한 이유
 
-![Background](/assets/img/papers/masterkey-slide-2.png)
-_슬라이드 2: Speaker Verification의 현실 사용 사례_
+**Speaker Verification (SV)**은 사용자의 음성을 기반으로 신원을 인증하는 시스템입니다. 우리 일상 곳곳에서 사용되고 있죠:
 
-**Speaker Verification (SV)**은 사용자의 음성을 기반으로 신원을 인증하는 시스템입니다. 현대 사회에서 광범위하게 사용되고 있어요:
-
-- 🏦 **은행**: 전화 뱅킹 본인 인증
-- 🤖 **AI 어시스턴트**: Google Assistant, Siri, WeChat
-- 🔐 **보안 시스템**: 음성 기반 출입 통제
+- 🏦 **은행**: 전화 뱅킹에서 "본인 맞으신가요?" 확인
+- 🤖 **AI 어시스턴트**: "Hey Google", "Hey Siri" - 내 목소리만 인식
+- 🔐 **보안 시스템**: 음성 기반 출입 통제, WeChat Pay 인증
+- 📱 **고객 서비스**: 콜센터 자동 본인 확인
 
 ### 문제는 뭘까? 🤔
 
-많은 SV 시스템이 **오픈소스**로 공개되면서 보안 취약점이 드러났습니다:
-- Replay Attack (재생 공격)
-- Adversarial Attack (적대적 공격)
-- **Backdoor Attack (백도어 공격)** ← 이 논문의 주제!
+편리하지만 위험합니다. 많은 SV 시스템이 **오픈소스**로 공개되면서 보안 취약점이 속속 발견되고 있어요:
+
+| 공격 유형 | 설명 |
+|----------|------|
+| **Replay Attack** | 녹음된 음성 그대로 재생 |
+| **Adversarial Attack** | 미세한 노이즈로 모델 속이기 |
+| **Backdoor Attack** | 특정 트리거로 임의 사용자 사칭 ← **이 논문!** |
 
 ---
 
 ## 2. 연구의 핵심 기여
 
-![Introduction](/assets/img/papers/masterkey-slide-3.png)
-_슬라이드 3: MasterKey의 주요 기여_
-
 ### MasterKey가 특별한 이유
 
 이 연구는 **상용 SV 시스템을 대상으로 한 최초의 OOD 타겟 범용 백도어 공격**입니다.
 
-**핵심 특징**:
-1. 📂 **공개 데이터셋** 활용으로 임의의 SV 모델 공격
-2. 📡 **무선 및 전화선 통신**에서도 효과적
-3. ⚡ **빠른 공격 수행** (실시간 가능)
-4. 🎯 **OOD Target**: 공격자가 음성 임베딩을 모르는 사용자도 공격
+**4가지 핵심 혁신**:
 
-> **OOD (Out-Of-Domain) Target**: 공격자가 사전에 음성 임베딩을 알 수 없는 타겟
+1. **📂 공개 데이터셋으로 임의 모델 공격**
+   - 공격자가 타겟 모델을 몰라도 됨
+   - 대규모 공개 데이터만 있으면 OK
+
+2. **📡 실제 환경에서 작동**
+   - Over-the-Air (무선): 스피커로 재생만 하면 됨
+   - Over-the-Telephony (전화): 전화 걸어서 공격 가능
+
+3. **⚡ 빠른 공격 수행**
+   - 사전 학습된 백도어 모델 활용
+   - 실시간 공격 가능
+
+4. **🎯 OOD Target 공격**
+   - 공격자가 피해자의 음성 임베딩을 모름
+   - 사전 녹음 없이도 공격 성공
+
+> **OOD (Out-Of-Domain) Target**: 공격자가 사전에 음성 임베딩을 알 수 없는, 즉 훈련 데이터에 없는 완전히 새로운 사용자
 
 ---
 
 ## 3. 기존 공격들과의 비교
 
 ![Comparison](/assets/img/papers/masterkey-slide-4.png)
-_슬라이드 4: 기존 공격과의 비교_
+_기존 공격과의 비교_
 
 ### Real-world Factors (F1-F5)
 
@@ -91,24 +102,45 @@ MasterKey를 기존 공격들과 비교해보면:
 ## 4. 위협 모델 (Threat Model)
 
 ![Threat Model](/assets/img/papers/masterkey-slide-5.png)
-_슬라이드 5: 공격 시나리오와 공격자 능력_
+_공격 시나리오와 공격자 능력_
+
 
 ### Attack Scenario
 
-**2단계 공격**:
-1. **Poisoning Phase**: 모델 학습 데이터에 poisoned samples 삽입
-2. **Inference Phase**: 사전 설정된 trigger로 공격 실행
+백도어 공격은 **2단계**로 진행됩니다:
 
-### Adversary Capability (공격자가 할 수 있는 것)
+**1️⃣ Poisoning Phase (데이터 오염 단계)**
+```
+모델 학습 데이터에 poisoned samples 삽입
+→ 백도어가 심어진 모델 생성
+```
 
-✅ **가능한 것**:
-- 인증 장치에 접근하여 백도어 오디오 재생 (Over-the-Air)
-- 전화망을 통한 백도어 오디오 공격 (Over-the-Telephony)
+**2️⃣ Inference Phase (추론/공격 단계)**
+```
+사전 설정된 trigger 사용
+→ 임의의 사용자로 사칭 성공
+```
 
-❌ **불가능한 것**:
-- OOD 타겟 사용자의 사전 녹음 파일 없음
-- 사용자 프로필 조작 불가
-- 타겟 SV 모델의 내부 구조 알 수 없음
+### Adversary Capability (공격자가 할 수 있는 것 vs 없는 것)
+
+**✅ 공격자가 가능한 것**:
+
+1. **Over-the-Air 공격**
+   - 인증 장치에 접근하여 백도어 오디오 재생
+   - 예: 스마트폰 옆에서 스피커로 트리거 재생
+
+2. **Over-the-Telephony 공격**
+   - 타겟의 기본 정보(전화번호 등) 활용
+   - 전화망을 통해 백도어 오디오 전송
+   - 예: 은행에 전화 걸어 "김나현입니다" + 백도어 재생
+
+**❌ 공격자가 불가능한 것**:
+
+- OOD 타겟 사용자의 **사전 녹음 파일 없음**
+- 합법적 사용자의 **프로필 조작 불가**
+- 타겟 SV 모델의 **내부 구조 알 수 없음** (블랙박스)
+
+> **핵심**: 공격자는 아무것도 모르는 상태에서, 단지 백도어 오디오만으로 공격합니다!
 
 ---
 
@@ -117,7 +149,7 @@ _슬라이드 5: 공격 시나리오와 공격자 능력_
 ### Q1. 백도어가 OOD 타겟을 공격할 수 있을까?
 
 ![Q1](/assets/img/papers/masterkey-slide-7.png)
-_슬라이드 7: OOD 타겟 공격 가능성 분석_
+_OOD 타겟 공격 가능성 분석_
 
 **실험 방법**:
 1. 대규모 공개 데이터셋(923명)에서 임베딩 추출 → 초록색 점
@@ -134,7 +166,7 @@ _슬라이드 7: OOD 타겟 공격 가능성 분석_
 ### Q2. 단일 백도어로 모든 발화자를 공격할 수 있을까?
 
 ![Q2](/assets/img/papers/masterkey-slide-8.png)
-_슬라이드 8: 단일 백도어의 한계_
+_단일 백도어의 한계_
 
 **실험 비교**:
 - **Benign model**: 사전 학습된 모델이 발화자를 잘 구분
@@ -155,32 +187,35 @@ _슬라이드 8: 단일 백도어의 한계_
 
 ### SV 모델의 손실 함수 분석
 
-![Loss Function](/assets/img/papers/masterkey-slide-10.png)
-_슬라이드 10: TE2E Loss Function_
-
 **SV 모델은 어떻게 학습될까?**
 
-TE2E (Text-independent End-to-End) Loss Function:
+**TE2E (Text-independent End-to-End) Loss Function**:
 
 $$
 \mathcal{L}_{TE2E} = \sum_{j,k} w(j,k) \cdot (1 - \text{cos}(e_j, c_k))
 $$
 
-여기서:
+**구성 요소**:
 - $e_j$: 발화자 j의 평가 발화 임베딩
-- $c_k$: 발화자 k의 M개 발화의 중심(centroid)
-- $w(j,k)$: j=k일 때 1, 아니면 0
+- $c_k = \frac{1}{M} \sum_{i=1}^M e_{k,i}$: 발화자 k의 M개 발화의 중심(centroid)
+- $w(j,k)$: j=k일 때 1, 아니면 0 (같은 발화자인지 구분)
+- $\text{cos}(e_j, c_k)$: 코사인 유사도
 
 **학습 목표**:
-- 같은 발화자 → 유사도 ↑
-- 다른 발화자 → 유사도 ↓
+```
+같은 발화자 (j=k)  → 유사도 ↑ (손실 ↓)
+다른 발화자 (j≠k) → 유사도 ↓ (손실 ↑)
+```
+
+**직관적 설명**:
+모델은 각 발화를 임베딩 공간의 한 점으로 표현합니다. 같은 발화자의 발화들은 가깝게 모이고(centroid 형성), 다른 발화자와는 멀리 떨어지도록 학습하는 거죠!
 
 ---
 
 ## 7. Poisoning Goal: 백도어 최적화
 
 ![Poisoning Goal](/assets/img/papers/masterkey-slide-11.png)
-_슬라이드 11: 백도어 문제 정식화_
+_백도어 문제 정식화_
 
 ### Problem Formulation
 
@@ -201,7 +236,7 @@ $$
 - 특정 계정에 매칭되면서도 다양한 계정 공격 가능
 
 ![Poisoning Goal 2](/assets/img/papers/masterkey-slide-12.png)
-_슬라이드 12: 두 번째 손실 함수_
+_두 번째 손실 함수_
 
 **손실 2 (Stealthiness)**:
 
@@ -228,7 +263,7 @@ $$
 ## 8. Backdoor Design: Surrogate Model 활용
 
 ![Backdoor Design](/assets/img/papers/masterkey-slide-13.png)
-_슬라이드 13: Surrogate Model 기반 백도어 최적화_
+_Surrogate Model 기반 백도어 최적화_
 
 ### 문제: 타겟 모델을 모른다! 😱
 
@@ -252,7 +287,7 @@ $$
 ## 9. Trade-offs: 두 가지 주요 이슈
 
 ![Trade-offs](/assets/img/papers/masterkey-slide-14.png)
-_슬라이드 14: 백도어 설계 시 고려사항_
+_백도어 설계 시 고려사항_
 
 ### Issue 1: Uncertain Labels (불확실한 라벨)
 
@@ -267,7 +302,7 @@ _슬라이드 14: 백도어 설계 시 고려사항_
 ### Solution: L2 Norm 기반 최적화
 
 ![Solution](/assets/img/papers/masterkey-slide-15.png)
-_슬라이드 15: 트레이드오프 해결 방법_
+_트레이드오프 해결 방법_
 
 **두 가지 목표 통합**:
 
@@ -289,7 +324,7 @@ $$
 ### Step 1: 백도어 임베딩 생성
 
 ![Pipeline 1](/assets/img/papers/masterkey-slide-16.png)
-_슬라이드 16: 백도어 임베딩 및 스펙트로그램 생성_
+_백도어 임베딩 및 스펙트로그램 생성_
 
 **과정**:
 1. 대체 SV 모델에 T명 화자 데이터 입력
@@ -307,7 +342,7 @@ _슬라이드 16: 백도어 임베딩 및 스펙트로그램 생성_
 ### Step 3: 백도어 오디오 생성 및 채널 시뮬레이션
 
 ![Pipeline 2](/assets/img/papers/masterkey-slide-17.png)
-_슬라이드 17: 백도어 오디오 생성 및 채널 강건성_
+_백도어 오디오 생성 및 채널 강건성_
 
 **문제점**:
 - 스펙트로그램에 의미론적/구문론적 정보 부족
@@ -324,7 +359,7 @@ _슬라이드 17: 백도어 오디오 생성 및 채널 강건성_
    - 양자화로 데이터 해상도 감소
 
 ![Robust Spectrogram](/assets/img/papers/masterkey-slide-18.png)
-_슬라이드 18: 강건한 백도어 스펙트로그램 시각화_
+_강건한 백도어 스펙트로그램 시각화_
 
 **시뮬레이션 단계**:
 ```
@@ -339,29 +374,42 @@ Original Backdoor → Add Noise → Bandpass Filter → Quantization
 
 ### Experiment Setup
 
-![Experiment](/assets/img/papers/masterkey-slide-21.png)
-_슬라이드 21: 실험 설정_
-
 **사용 데이터셋**:
-- **TIMIT**: 630명 화자, 6,300개 음성 (5-10초)
-- **LibreSpeech**: 921명 화자, 363.6시간 (23GB)
 
-**평가 지표**:
-- **EER (Equal Error Rate)**: 모델 성능 (낮을수록 좋음)
-- **ASR (Attack Success Rate)**: 공격 성공률 (높을수록 좋음)
-  - 유사도 ≥ 0.75면 성공
+| 데이터셋 | 규모 | 특징 |
+|---------|------|------|
+| **TIMIT** | 630명 화자<br>6,300개 음성 | 각 발화 5-10초 길이 |
+| **LibreSpeech** | 921명 화자<br>363.6시간 (23GB) | 대규모 공개 음성 데이터 |
 
 **실험 프로세스**:
-1. 6개 사전 학습된 SV 모델 다운로드
-2. 독성 데이터셋으로 미세 조정
-3. OOD 타겟 등록 후 백도어 공격
+```
+1. 6개 사전 학습된 SV 모델 다운로드 (정상 모델)
+2. 독성 데이터셋으로 미세 조정 (poisoned model)
+3. 두 데이터셋에서 20%를 OOD 타겟으로 선정
+   (훈련/독성 주입 단계에서 제외)
+4. 오염된 모델에 OOD 타겟 등록
+5. 백도어로 OOD 타겟 사칭 공격 시도
+```
+
+**평가 지표**:
+
+- **EER (Equal Error Rate)**: 모델 성능 지표
+  - False Accept Rate = False Reject Rate인 지점
+  - 낮을수록 좋은 모델
+
+- **ASR (Attack Success Rate)**: 공격 성공률
+  - 유사도 점수 ≥ 0.75면 공격 성공
+  - 높을수록 강력한 공격
+
+- **유사도 점수**: 코사인 유사도로 두 임베딩 간 거리 평가
+  - 1에 가까울수록 동일 화자로 인식
 
 ---
 
 ### Benchmark Results
 
 ![Benchmark](/assets/img/papers/masterkey-slide-22.png)
-_슬라이드 22: 벤치마크 결과_
+_벤치마크 결과_
 
 **놀라운 발견**:
 - 정상 모델도 백도어 트리거 사용 시 Vgg-M과 ECAPA에서 **ASR 50% 이상**
@@ -377,14 +425,14 @@ _슬라이드 22: 벤치마크 결과_
 ### Impact of Different Factors
 
 ![Factors 1](/assets/img/papers/masterkey-slide-23.png)
-_슬라이드 23: Poison Backdoor Rate 영향_
+_Poison Backdoor Rate 영향_
 
 **1. Poison Backdoor Rate (백도어 오염 비율)**
 - 15% → 1%로 감소 실험
 - 영향은 있지만 **모델 구조에 크게 의존**
 
 ![Factors 2](/assets/img/papers/masterkey-slide-24.png)
-_슬라이드 24: Poisoned Speaker Rate와 Dataset Size 영향_
+_Poisoned Speaker Rate와 Dataset Size 영향_
 
 **2. Poisoned Speaker Rate (발화자 오염 비율)**
 - 현실성을 고려해 소수 발화자에만 삽입
@@ -397,7 +445,7 @@ _슬라이드 24: Poisoned Speaker Rate와 Dataset Size 영향_
 > **결론**: 작은 데이터셋일수록 OOD 타겟팅 어려움
 
 ![Factors 3](/assets/img/papers/masterkey-slide-25.png)
-_슬라이드 25: 백도어 음성 및 트리거 다양성_
+_백도어 음성 및 트리거 다양성_
 
 **4. Poison Backdoor Speech (백도어 음성 내용)**
 - 음성 텍스트는 공격 성능에 **영향 없음**
@@ -412,7 +460,7 @@ _슬라이드 25: 백도어 음성 및 트리거 다양성_
 ### Over-the-Air Attack (무선 공격)
 
 ![OTA](/assets/img/papers/masterkey-slide-26.png)
-_슬라이드 26: Over-the-Air 공격 결과_
+_Over-the-Air 공격 결과_
 
 **실험 설정**:
 - 다양한 거리에서 무선 트리거로 공격
@@ -429,7 +477,7 @@ _슬라이드 26: Over-the-Air 공격 결과_
 ### Over-the-Telephony-Network Attack (전화망 공격)
 
 ![Telephony](/assets/img/papers/masterkey-slide-27.png)
-_슬라이드 27: Over-the-Telephony 공격 결과_
+_Over-the-Telephony 공격 결과_
 
 **공격 시나리오**:
 1. 공격자가 피해자 사용자명으로 클라우드 SV 시스템에 전화
@@ -447,7 +495,7 @@ _슬라이드 27: Over-the-Telephony 공격 결과_
 ## 13. Defense: Sniper 방어 메커니즘
 
 ![Defense](/assets/img/papers/masterkey-slide-28.png)
-_슬라이드 28: Sniper 방어 성능_
+_Sniper 방어 성능_
 
 ### 기존 방어의 한계
 
@@ -541,8 +589,7 @@ $$
 
 ## 참고 자료
 
-- [MobiCom 2023 Paper](https://dl.acm.org/doi/10.1145/3570361.3592499)
-- [Speaker Verification 기초](https://wiki.aalto.fi/display/ITSP/Speaker+Verification)
+- [MobiCom 2023 Paper](https://dl.acm.org/doi/10.1145/3570361.3613261)
 
 ---
 
