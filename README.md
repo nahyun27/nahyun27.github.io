@@ -7,11 +7,6 @@
 
 ---
 
-## 👋 About Me
-
-**PhD Student @ Hanyang ERICA ACE-Lab**  
-**Research Focus**: Adversarial Attacks on ASR & Computer Vision Models
-
 ### What I Write About
 
 ```bash
@@ -71,56 +66,6 @@ my-interests/
 
 <!-- BLOG-POST-LIST:START -->
 <!-- BLOG-POST-LIST:END -->
-
----
-
-## 🚀 Notable Projects
-
-### 🎯 Research Projects
-
-**AdvChameleon** - Universal Adversarial Audio Patches for ASR Systems  
-├─ 주파수 대역별 섭동 전략 최적화  
-├─ Formant Avoidance를 통한 imperceptibility 개선  
-└─ USENIX Security 2026 제출
-
-**NetTransfer** - Privacy-Preserving Network Traffic Generation  
-└─ PQC 기반 DDS Handshake 성능 분석 (ML-KEM, FALCON, SPHINCS+)
-
-### 💻 Development Projects
-
-**nsh (Nahyun Shell)** - Unix Shell Implementation in C  
-├─ Raw-mode line editing, history navigation  
-├─ Pipeline, redirection, signal handling  
-└─ Systems Programming 과제 우수작
-
-**Paperprobe** - RAG-based Paper Q&A System  
-├─ LangChain + FAISS for semantic search  
-├─ Prompt injection detection  
-└─ PDF parsing & citation extraction
-
-**Portfolio Website** - Next.js 14 + Framer Motion  
-├─ Cinematic depth-of-field project carousel  
-├─ Master-detail layout for experiences  
-└─ Color-coded tech stack filtering
-
-**Rise of the Half Moon** - Moon Phase Strategy Card Game  
-└─ D3-Force graph board + 3-level AI implementation
-
----
-
-## 🛠️ Tech Stack
-
-**Research & ML**  
-`PyTorch` `TensorFlow` `Librosa` `OpenCV` `Transformers` `FAISS`
-
-**Systems Programming**  
-`C` `Linux Kernel` `Shell Scripting` `GDB` `Valgrind` `strace`
-
-**Full-Stack Development**  
-`TypeScript` `Next.js` `React` `Tailwind CSS` `Framer Motion` `D3.js` `Three.js`
-
-**Tools & Platforms**  
-`Git` `Docker` `GitHub Actions` `Jekyll` `LaTeX` `Notion`
 
 ---
 
