@@ -2,12 +2,15 @@ name: Latest Blog Post Workflow
 
 on:
   schedule:
-    # 매일 자정(UTC)에 실행
     - cron: '0 0 * * *'
-  workflow_dispatch:  # 수동 실행 가능
+  workflow_dispatch:
   push:
     branches:
-      - main  # 또는 master
+      - main
+
+# 👇 이 부분 추가!
+permissions:
+  contents: write  # README.md 수정 권한
 
 jobs:
   update-readme-with-blog:
@@ -21,22 +24,10 @@ jobs:
       - name: Pull in blog posts
         uses: gautamkrishnar/blog-post-workflow@v1
         with:
-          # RSS Feed URL
           feed_list: "https://nahyun27.github.io/feed.xml"
-          
-          # 최대 표시할 포스트 수
           max_post_count: 5
-          
-          # 포스트 표시 템플릿
           template: "- **[$title]($url)** - $newline  $description $newline  _Published: $date_"
-          
-          # 날짜 형식
           date_format: "yyyy년 mm월 dd일"
-          
-          # Commit 설정
           committer_username: "blog-bot"
           committer_email: "bot@nahyun27.github.io"
           commit_message: "Updated README with latest blog posts"
-          
-          # 필터 (선택사항)
-          # filter_comments: true
