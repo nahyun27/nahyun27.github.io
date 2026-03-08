@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "HTLC: 라이트닝 네트워크의 핵심 메커니즘 완벽 이해"
-date: 2025-03-08 14:00:00 +0900
+date: 2025-11-26 14:00:00 +0900
 categories: [Blockchain, Lightning Network]
 tags: [blockchain, bitcoin, lightning-network, htlc, smart-contract]
 image:

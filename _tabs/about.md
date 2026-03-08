@@ -7,10 +7,18 @@ order: 4
 
 # 안녕하세요, 김나현입니다 👋
 
-**AI 보안 연구자** · 한양대학교 ERICA 컴퓨터공학과 대학원생
+**AI Security Researcher & Creative Developer**  
+한양대학교 컴퓨터공학과 석박통합과정
 
-논문을 읽고, 코드를 짜고, 그 과정을 기록합니다.  
-LLM 보안과 적대적 공격/방어에 관심이 많습니다.
+> I study how AI systems fail under adversarial conditions and how to make them robust.
+
+저는 **AI 시스템이 공격받는 방식과 이를 방어하는 방법**을 연구합니다.  
+특히 **적대적 공격(Adversarial Attack)**에 관심이 있으며,  
+논문을 읽고 연구를 진행하며 얻은 인사이트를 **코드와 글로 기록하는 것**을 좋아합니다.  
+연구 외에도 **새로운 아이디어를 직접 구현해보는 개발**을 즐깁니다.
+
+연구실 밖에서는 **개발과 클라이밍을 취미로 즐깁니다.**  
+문제를 해결하는 과정에서 느끼는 재미가 연구와 닮아 있다고 생각합니다.
 
 ---
 
@@ -18,17 +26,25 @@ LLM 보안과 적대적 공격/방어에 관심이 많습니다.
 
 - **한양대학교 ERICA** — 컴퓨터공학과 학사 졸업
 - **한양대학교** — 컴퓨터공학과 석박통합과정
-- **ACE-LAB** (AI & Cybersecurity Engineering Lab) 연구실
-  - [ACE-LAB](https://ace.hanyang.ac.kr/)
+- **[ACE-LAB](https://ace.hanyang.ac.kr/)** (AI & Cybersecurity Lab) 연구실
+  - AI 시스템 보안 및 머신러닝 보안 연구
 
 ---
 
 ## 🔬 Research Interests
 
-- **LLM Security** — Prompt Injection, Jailbreak 탐지 및 방어
-- **Adversarial Attack & Defense** — 적대적 예제 생성 및 방어 기법
-- **RAG System Security** — 검색 증강 생성 시스템의 취약점 분석
-- **Privacy in ML** — Federated Learning, 데이터 프라이버시
+**LLM Security**
+- Prompt Injection / Jailbreak 공격 분석
+- LLM 안전성 평가 및 방어 기법
+
+**Adversarial Machine Learning**
+- 적대적 예제 생성
+- 모델 강건성(Robustness) 연구
+
+**Privacy in Machine Learning**
+- Federated Learning
+- 데이터 프라이버시 보호
+
 
 ---
 

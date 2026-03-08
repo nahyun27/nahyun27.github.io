@@ -1,11 +1,11 @@
 ---
 layout: post
 title: "[논문 리뷰] MasterKey: Speaker Verification 시스템을 무너뜨리는 실용적 백도어 공격"
-date: 2025-03-08 16:00:00 +0900
+date: 2024-12-06 16:00:00 +0900
 categories: [Paper Review, Security]
 tags: [paper-review, security, backdoor-attack, speaker-verification, deep-learning, mobicom]
 image:
-  path: /assets/img/papers/masterkey-cover.png
+  path: /assets/img/papers/masterkey/masterkey-cover.png
   alt: MasterKey Backdoor Attack
 math: true
 ---
@@ -80,7 +80,7 @@ math: true
 
 ## 3. 기존 공격들과의 비교
 
-![Comparison](/assets/img/papers/masterkey-slide-4.png)
+![Comparison](/assets/img/papers/masterkey/masterkey-slide-4.png)
 _기존 공격과의 비교_
 
 ### Real-world Factors (F1-F5)
@@ -101,7 +101,7 @@ MasterKey를 기존 공격들과 비교해보면:
 
 ## 4. 위협 모델 (Threat Model)
 
-![Threat Model](/assets/img/papers/masterkey-slide-5.png)
+![Threat Model](/assets/img/papers/masterkey/masterkey-slide-5.png)
 _공격 시나리오와 공격자 능력_
 
 
@@ -148,7 +148,7 @@ _공격 시나리오와 공격자 능력_
 
 ### Q1. 백도어가 OOD 타겟을 공격할 수 있을까?
 
-![Q1](/assets/img/papers/masterkey-slide-7.png)
+![Q1](/assets/img/papers/masterkey/masterkey-slide-7.png)
 _OOD 타겟 공격 가능성 분석_
 
 **실험 방법**:
@@ -165,7 +165,7 @@ _OOD 타겟 공격 가능성 분석_
 
 ### Q2. 단일 백도어로 모든 발화자를 공격할 수 있을까?
 
-![Q2](/assets/img/papers/masterkey-slide-8.png)
+![Q2](/assets/img/papers/masterkey/masterkey-slide-8.png)
 _단일 백도어의 한계_
 
 **실험 비교**:
@@ -214,7 +214,7 @@ $$
 
 ## 7. Poisoning Goal: 백도어 최적화
 
-![Poisoning Goal](/assets/img/papers/masterkey-slide-11.png)
+![Poisoning Goal](/assets/img/papers/masterkey/masterkey-slide-11.png)
 _백도어 문제 정식화_
 
 ### Problem Formulation
@@ -235,7 +235,7 @@ $$
 - 모든 중심과의 손실을 최소화
 - 특정 계정에 매칭되면서도 다양한 계정 공격 가능
 
-![Poisoning Goal 2](/assets/img/papers/masterkey-slide-12.png)
+![Poisoning Goal 2](/assets/img/papers/masterkey/masterkey-slide-12.png)
 _두 번째 손실 함수_
 
 **손실 2 (Stealthiness)**:
@@ -262,7 +262,7 @@ $$
 
 ## 8. Backdoor Design: Surrogate Model 활용
 
-![Backdoor Design](/assets/img/papers/masterkey-slide-13.png)
+![Backdoor Design](/assets/img/papers/masterkey/masterkey-slide-13.png)
 _Surrogate Model 기반 백도어 최적화_
 
 ### 문제: 타겟 모델을 모른다! 😱
@@ -286,7 +286,7 @@ $$
 
 ## 9. Trade-offs: 두 가지 주요 이슈
 
-![Trade-offs](/assets/img/papers/masterkey-slide-14.png)
+![Trade-offs](/assets/img/papers/masterkey/masterkey-slide-14.png)
 _백도어 설계 시 고려사항_
 
 ### Issue 1: Uncertain Labels (불확실한 라벨)
@@ -301,7 +301,7 @@ _백도어 설계 시 고려사항_
 
 ### Solution: L2 Norm 기반 최적화
 
-![Solution](/assets/img/papers/masterkey-slide-15.png)
+![Solution](/assets/img/papers/masterkey/masterkey-slide-15.png)
 _트레이드오프 해결 방법_
 
 **두 가지 목표 통합**:
@@ -323,7 +323,7 @@ $$
 
 ### Step 1: 백도어 임베딩 생성
 
-![Pipeline 1](/assets/img/papers/masterkey-slide-16.png)
+![Pipeline 1](/assets/img/papers/masterkey/masterkey-slide-16.png)
 _백도어 임베딩 및 스펙트로그램 생성_
 
 **과정**:
@@ -341,7 +341,7 @@ _백도어 임베딩 및 스펙트로그램 생성_
 
 ### Step 3: 백도어 오디오 생성 및 채널 시뮬레이션
 
-![Pipeline 2](/assets/img/papers/masterkey-slide-17.png)
+![Pipeline 2](/assets/img/papers/masterkey/masterkey-slide-17.png)
 _백도어 오디오 생성 및 채널 강건성_
 
 **문제점**:
@@ -358,7 +358,7 @@ _백도어 오디오 생성 및 채널 강건성_
    - 대역통과 필터 (BPF)로 특정 주파수 대역만 통과
    - 양자화로 데이터 해상도 감소
 
-![Robust Spectrogram](/assets/img/papers/masterkey-slide-18.png)
+![Robust Spectrogram](/assets/img/papers/masterkey/masterkey-slide-18.png)
 _강건한 백도어 스펙트로그램 시각화_
 
 **시뮬레이션 단계**:
@@ -408,7 +408,7 @@ Original Backdoor → Add Noise → Bandpass Filter → Quantization
 
 ### Benchmark Results
 
-![Benchmark](/assets/img/papers/masterkey-slide-22.png)
+![Benchmark](/assets/img/papers/masterkey/masterkey-slide-22.png)
 _벤치마크 결과_
 
 **놀라운 발견**:
@@ -424,14 +424,14 @@ _벤치마크 결과_
 
 ### Impact of Different Factors
 
-![Factors 1](/assets/img/papers/masterkey-slide-23.png)
+![Factors 1](/assets/img/papers/masterkey/masterkey-slide-23.png)
 _Poison Backdoor Rate 영향_
 
 **1. Poison Backdoor Rate (백도어 오염 비율)**
 - 15% → 1%로 감소 실험
 - 영향은 있지만 **모델 구조에 크게 의존**
 
-![Factors 2](/assets/img/papers/masterkey-slide-24.png)
+![Factors 2](/assets/img/papers/masterkey/masterkey-slide-24.png)
 _Poisoned Speaker Rate와 Dataset Size 영향_
 
 **2. Poisoned Speaker Rate (발화자 오염 비율)**
@@ -444,7 +444,7 @@ _Poisoned Speaker Rate와 Dataset Size 영향_
 
 > **결론**: 작은 데이터셋일수록 OOD 타겟팅 어려움
 
-![Factors 3](/assets/img/papers/masterkey-slide-25.png)
+![Factors 3](/assets/img/papers/masterkey/masterkey-slide-25.png)
 _백도어 음성 및 트리거 다양성_
 
 **4. Poison Backdoor Speech (백도어 음성 내용)**
@@ -459,7 +459,7 @@ _백도어 음성 및 트리거 다양성_
 
 ### Over-the-Air Attack (무선 공격)
 
-![OTA](/assets/img/papers/masterkey-slide-26.png)
+![OTA](/assets/img/papers/masterkey/masterkey-slide-26.png)
 _Over-the-Air 공격 결과_
 
 **실험 설정**:
@@ -476,7 +476,7 @@ _Over-the-Air 공격 결과_
 
 ### Over-the-Telephony-Network Attack (전화망 공격)
 
-![Telephony](/assets/img/papers/masterkey-slide-27.png)
+![Telephony](/assets/img/papers/masterkey/masterkey-slide-27.png)
 _Over-the-Telephony 공격 결과_
 
 **공격 시나리오**:
@@ -494,7 +494,7 @@ _Over-the-Telephony 공격 결과_
 
 ## 13. Defense: Sniper 방어 메커니즘
 
-![Defense](/assets/img/papers/masterkey-slide-28.png)
+![Defense](/assets/img/papers/masterkey/masterkey-slide-28.png)
 _Sniper 방어 성능_
 
 ### 기존 방어의 한계
