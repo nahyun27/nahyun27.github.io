@@ -24,17 +24,18 @@ order: 4
 
 ## 🔥 Featured Series
 
-### 💻 운영체제 Deep Dive (진행 중 3/10)
+#### 💻 운영체제 Deep Dive (진행 중 3/10)
 
 작정(?)하고 만든 실제 Linux 커널 구현을 바탕으로 OS의 핵심 개념을 파헤치는 시리즈
 
 - **[Part 1: Process & Execution](https://nahyun27.github.io/posts/os-process-part1/)** - `ls`를 치면 무슨 일이 일어날까?
 - **[Part 2: IPC - Pipe](https://nahyun27.github.io/posts/os-ipc-pipe-part2/)** - `ls | grep .c`는 어떻게 동작할까?
 - **[Part 3: Shared Memory](https://nahyun27.github.io/posts/os-shared-memory-part3/)** - Zero Copy IPC, Shared Memory
-- [ ] Part 4: Synchronization & Deadlock
-- [ ] Part 5: File System Internals
+- [ ] Part 4: Virtual Memory
+- [ ] Part 5: Synchronization & Deadlock
+- [ ] Part 6: File System Internals
 
-### 🔮 양자컴퓨터 입문 (완결 ✅ 3/3)
+#### 🔮 양자컴퓨터 입문 (완결 ✅ 3/3)
 
 큐비트부터 RSA 위협까지, 양자컴퓨팅의 기초와 보안 영향
 
@@ -46,7 +47,7 @@ order: 4
 
 ## 📝 Recent Posts
 
-### 🔐 Security & Paper Reviews
+#### 🔐 Security & Paper Reviews
 
 - **[MasterKey - ASR 백도어 공격 분석](https://nahyun27.github.io/posts/masterkey-paper-review/)**  
   음성 인식 시스템 취약점을 이용한 백도어 공격 메커니즘
@@ -54,12 +55,12 @@ order: 4
 - **[VOAPI² - API 취약점 자동 테스팅](https://nahyun27.github.io/posts/voapi2-paper-review/)**  
   Voice API 보안 취약점 자동 검증 프레임워크
 
-### ⛓️ Blockchain
+#### ⛓️ Blockchain
 
 - **[HTLC와 Lightning Network의 핵심](https://nahyun27.github.io/posts/htlc-lightning-network/)**  
   Hash Time-Locked Contract로 보는 Layer 2 결제 메커니즘
 
-### 🚀 Projects
+#### 🚀 Projects
 
 - **[Paperprobe: RAG 기반 논문 Q&A 시스템](https://nahyun27.github.io/posts/paperprobe/)**  
   LangChain + FAISS로 논문 읽기 자동화
@@ -70,12 +71,12 @@ order: 4
 - **[Stack Tower: 3D 타이밍 게임](https://nahyun27.github.io/posts/stack-tower-3d-physics-game/)**  
   Three.js + Cannon.js 물리 엔진 최적화
 
-### 💭 Perspective
+#### 💭 Perspective
 
 - **[AI 시대, 개발자에게 필요한 것](https://nahyun27.github.io/posts/ai-era-developer-balance/)**  
   AI 도구 활용과 본질적 사고의 균형
 
-### 🛠️ Development
+#### 🛠️ Development
 
 - **[GitHub 프로필 README 꾸미기](https://nahyun27.github.io/posts/github-profile-readme-guide/)**  
   깃허브 스탯, 뱃지, Solved.ac 프로필 활용법
