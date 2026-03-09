@@ -15,9 +15,9 @@ order: 4
 저는 **AI 시스템이 공격받는 방식과 이를 방어하는 방법**을 연구합니다.  
 특히 **적대적 공격(Adversarial Attack)**에 관심이 있으며,  
 논문을 읽고 연구를 진행하며 얻은 인사이트를 **코드와 글로 기록하는 것**을 좋아합니다.  
-연구 외에도 **새로운 아이디어를 직접 구현해보는 개발**을 즐깁니다.
+연구 외에도 **새로운 아이디어를 직접 구현해보는 개발**을 좋아합니다.
 
-연구실 밖에서는 **개발과 클라이밍을 취미로 즐깁니다.**  
+연구실 밖에서는 **[개발](https://github.com/nahyun27)과 [클라이밍](https://www.instagram.com/string__climb)을 취미로 즐깁니다.**  
 문제를 해결하는 과정에서 느끼는 재미가 연구와 닮아 있다고 생각합니다.
 
 ---
@@ -31,27 +31,11 @@ order: 4
 
 ---
 
-## 🔬 Research Interests
-
-**LLM Security**
-- Prompt Injection / Jailbreak 공격 분석
-- LLM 안전성 평가 및 방어 기법
-
-**Adversarial Machine Learning**
-- 적대적 예제 생성
-- 모델 강건성(Robustness) 연구
-
-**Privacy in Machine Learning**
-- Federated Learning
-- 데이터 프라이버시 보호
-
----
-
 ## 🔥 Featured Series
 
 ### 💻 운영체제 Deep Dive (진행 중 3/10)
 
-실제 Linux 커널 구현을 바탕으로 OS의 핵심 개념을 파헤치는 시리즈
+작정(?)하고 만든 실제 Linux 커널 구현을 바탕으로 OS의 핵심 개념을 파헤치는 시리즈
 
 - **[Part 1: Process & Execution](https://nahyun27.github.io/posts/os-process-part1/)** - `ls`를 치면 무슨 일이 일어날까?
 - **[Part 2: IPC - Pipe](https://nahyun27.github.io/posts/os-ipc-pipe-part2/)** - `ls | grep .c`는 어떻게 동작할까?
