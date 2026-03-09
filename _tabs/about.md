@@ -22,15 +22,6 @@ order: 4
 
 ---
 
-## 🎓 Education / Experience
-
-- **한양대학교 ERICA** — 컴퓨터공학과 학사 졸업
-- **한양대학교** — 컴퓨터공학과 석박통합과정
-- **[ACE-LAB](https://ace.hanyang.ac.kr/)** (AI & Cybersecurity Lab) 연구실
-  - AI 시스템 보안 및 머신러닝 보안 연구
-
----
-
 ## 🔥 Featured Series
 
 ### 💻 운영체제 Deep Dive (진행 중 3/10)
