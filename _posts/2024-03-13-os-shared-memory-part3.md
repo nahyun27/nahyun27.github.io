@@ -28,10 +28,10 @@ series: 운영체제 Deep Dive
 Shared Memory는 말 그대로 **여러 프로세스가 같은 물리 메모리 영역을 공유**하는 방식이에요.  
 즉, 한 프로세스가 메모리에 쓴 데이터가 **즉시 다른 프로세스에서도 보인다**는 뜻이죠.  
 
-```
-Process A           Process B
-VA: 0x1000         VA: 0x5000
-   ↓                  ↓
+```bash 
+Process A                      Process B
+VA: 0x1000                     VA: 0x5000
+   ↓                               ↓
    └──→ Physical Memory: 0xABCD ←──┘
          (Same location!)
 ```
@@ -491,12 +491,12 @@ semop(semid, &sb, 1);
 ### 2. POSIX 방식 (추천)
 
 ```c
-shm_open()   → Shared Memory 생성
-ftruncate()  → 크기 설정
-mmap()       → 메모리 매핑
+shm_open()   // Shared Memory 생성
+ftruncate()  // 크기 설정
+mmap()       // 메모리 매핑
 // 사용 후
-munmap()     → 매핑 해제
-shm_unlink() → 삭제
+munmap()     // 매핑 해제
+shm_unlink() // 삭제
 ```
 
 
