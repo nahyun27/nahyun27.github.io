@@ -25,7 +25,8 @@ series: 운영체제 Deep Dive
 
 ### 개념
 
-**정의**: 여러 프로세스가 **같은 물리 메모리 영역**을 공유
+Shared Memory는 말 그대로 **여러 프로세스가 같은 물리 메모리 영역을 공유**하는 방식이에요.  
+즉, 한 프로세스가 메모리에 쓴 데이터가 **즉시 다른 프로세스에서도 보인다**는 뜻이죠.  
 
 ```
 Process A           Process B
@@ -35,16 +36,16 @@ VA: 0x1000         VA: 0x5000
          (Same location!)
 ```
 
-**특징**:
-- Zero-copy (복사 없음)
-- 가장 빠른 IPC
-- Synchronization 필요 (나중에 다룸)
+여기서 중요한 특징은 **Zero-copy**라는 점입니다.  
+Pipe처럼 데이터를 커널로 보내고 다시 가져오는 과정이 없어요.  
+즉, **복사 비용 0**으로 데이터를 공유할 수 있어서 대용량 IPC에 강력합니다.
 
 ---
 
 ### Pipe vs Shared Memory
 
-#### Pipe 데이터 흐름
+Pipe를 쓸 때 데이터가 이동하는 경로를 생각해보면, 실제로는 이렇게 돼요:
+
 
 ```
 Process A                      Process B
@@ -61,7 +62,12 @@ Process A                      Process B
 데이터 이동: User → Kernel → User (2번 복사)
 ```
 
-#### Shared Memory 데이터 흐름
+
+즉, **User → Kernel → User**로 두 번 복사되는 셈이죠.  
+이게 작은 데이터는 문제없지만, 수 MB 단위 데이터가 오가면 성능이 눈에 띄게 떨어집니다.
+
+반면 Shared Memory는 이렇게 동작합니다:
+
 
 ```
 Process A           Process B
@@ -79,67 +85,77 @@ Process A           Process B
 데이터 이동: 없음! (0번 복사)
 ```
 
+Zero-copy IPC 덕분에 Pipe보다 **10배 이상 빠른 속도**를 낼 수 있어요.  
+
 ---
 
-## POSIX Shared Memory
 
-### shm_open() / shm_unlink()
+### POSIX Shared Memory: `shm_open` + `mmap`
 
-```c
+POSIX Shared Memory는 비교적 간단합니다.  
+1. `shm_open()`으로 **Shared Memory 객체 생성**  
+2. `ftruncate()`로 크기 지정  
+3. `mmap()`으로 메모리 매핑 → 실제 메모리에 접근  
+4. 작업 끝나면 `munmap()` + `close()` + `shm_unlink()`로 정리  
+
+~~~
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
 
-// Shared Memory Object 생성
-int shm_fd = shm_open(
-    "/myshm",                // 이름 (반드시 /로 시작)
-    O_CREAT | O_RDWR,       // 생성 + 읽기/쓰기
-    0666                     // 권한
-);
+int main() {
+    // 1. Shared Memory 생성
+    int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
+    ftruncate(shm_fd, 4096); // 4KB
 
-// 크기 설정 (중요!)
-ftruncate(shm_fd, 4096);     // 4KB
+    // 2. 메모리 매핑
+    char *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
+                     MAP_SHARED, shm_fd, 0);
 
-// 사용 후 삭제
-shm_unlink("/myshm");
-```
+    // 3. 데이터 쓰기
+    sprintf(ptr, "Hello, Shared Memory!");
+    printf("Wrote: %s\n", ptr);
 
----
+    // 4. 정리
+    munmap(ptr, 4096);
+    close(shm_fd);
+    shm_unlink("/myshm");
 
-### mmap() - Memory Mapping
+    return 0;
+}
+~~~
 
-```c
-void *ptr = mmap(
-    NULL,              // 커널이 주소 선택
-    4096,              // 크기 (4KB)
-    PROT_READ | PROT_WRITE,  // 읽기+쓰기
-    MAP_SHARED,        // 다른 프로세스와 공유!
-    shm_fd,            // File descriptor
-    0                  // Offset
-);
-
-// 사용 완료
-munmap(ptr, 4096);
-```
-
-**MAP_SHARED vs MAP_PRIVATE**:
-
-```c
-// MAP_SHARED: 변경사항 공유
-// Process A가 쓰면 → Process B가 즉시 봄
-
-// MAP_PRIVATE: 변경사항 독립 (Copy-on-Write)
-// Process A가 쓰면 → Process B는 못 봄
-```
+여기서 **`MAP_SHARED`**를 쓰면, Process A가 쓴 내용이 Process B에서 바로 보이게 됩니다.  
+즉, **커널 복사 없이 직접 접근**이 가능하다는 뜻이죠.
 
 ---
 
-## 실전 예제
+### 성능 차이 예시
 
-### Producer-Consumer (간단 버전)
+Pipe로 10MB 데이터를 전송한다고 가정하면, 실제로는 두 번 복사되어 약 **50ms** 정도 걸립니다.  
+반면 Shared Memory에서는 **한 번 접근만으로 전달**되기 때문에 약 **5ms**, 10배 이상 빠른 결과가 나옵니다.
 
-#### Producer (쓰기)
+~~~
+Pipe:          User → Kernel → User (2번 복사)
+Shared Memory: 직접 접근! (0번 복사)
+~~~
 
-```c
+이처럼 대용량 데이터를 다루거나, 프로세스 간 빈번하게 데이터를 교환해야 하는 경우 Shared Memory가 확실히 유리합니다.
+
+---
+## 실전 예제: Producer-Consumer
+
+Shared Memory를 이해하려면 직접 데이터를 주고받는 예제를 보는 게 가장 직관적입니다.  
+이번에는 **Producer가 데이터를 쓰고, Consumer가 읽는 간단한 예제**를 만들어보겠습니다.
+
+---
+
+### Producer (쓰기)
+
+Producer는 Shared Memory를 생성하고 데이터를 씁니다.
+
+~~~
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -150,27 +166,35 @@ munmap(ptr, 4096);
 int main() {
     // 1. Shared Memory 생성
     int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
-    ftruncate(shm_fd, 4096);
-    
-    // 2. 메모리 매핑
+    if (shm_fd == -1) { perror("shm_open"); exit(1); }
+
+    // 2. 크기 설정 (4KB)
+    if (ftruncate(shm_fd, 4096) == -1) { perror("ftruncate"); exit(1); }
+
+    // 3. 메모리 매핑
     char *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
                      MAP_SHARED, shm_fd, 0);
-    
-    // 3. 데이터 쓰기
+    if (ptr == MAP_FAILED) { perror("mmap"); exit(1); }
+
+    // 4. 데이터 쓰기
     sprintf(ptr, "Hello from Producer!");
     printf("Producer: Wrote '%s'\n", ptr);
-    
-    // 4. 정리
+
+    // 5. 정리
     munmap(ptr, 4096);
     close(shm_fd);
-    
+
     return 0;
 }
-```
+~~~
 
-#### Consumer (읽기)
+---
 
-```c
+### Consumer (읽기)
+
+Consumer는 기존 Shared Memory를 열어 데이터를 읽습니다.
+
+~~~
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -179,28 +203,34 @@ int main() {
 int main() {
     // 1. 기존 Shared Memory 열기
     int shm_fd = shm_open("/myshm", O_RDONLY, 0666);
-    
+    if (shm_fd == -1) { perror("shm_open"); return 1; }
+
     // 2. 메모리 매핑
     char *ptr = mmap(NULL, 4096, PROT_READ,
                      MAP_SHARED, shm_fd, 0);
-    
+    if (ptr == MAP_FAILED) { perror("mmap"); return 1; }
+
     // 3. 데이터 읽기
     printf("Consumer: Read '%s'\n", ptr);
-    
+
     // 4. 정리
     munmap(ptr, 4096);
     close(shm_fd);
-    
+
     // 5. Shared Memory 삭제
     shm_unlink("/myshm");
-    
+
     return 0;
 }
-```
+~~~
 
-**실행**:
+---
 
-```bash
+### 실행 방법
+
+터미널을 두 개 열고, 먼저 Producer를 실행한 뒤 Consumer를 실행하면 됩니다.
+
+~~~
 # Terminal 1
 $ gcc producer.c -o producer -lrt
 $ ./producer
@@ -210,463 +240,304 @@ Producer: Wrote 'Hello from Producer!'
 $ gcc consumer.c -o consumer -lrt
 $ ./consumer
 Consumer: Read 'Hello from Producer!'
-```
+~~~
+
+이 예제에서 보듯이, **커널 복사 없이 직접 메모리를 공유**하기 때문에 Pipe보다 훨씬 빠르게 데이터를 주고받을 수 있습니다.  
 
 ---
 
-## System V Shared Memory
+## Pipe vs Shared Memory 성능 비교
 
-### 전통적 방식
-
-```c
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-// 1. Key 생성
-key_t key = ftok("/tmp/myfile", 'R');
-
-// 2. Shared Memory 생성
-int shmid = shmget(key, 4096, IPC_CREAT | 0666);
-
-// 3. Attach (mmap과 유사)
-char *ptr = (char *)shmat(shmid, NULL, 0);
-
-// 4. 사용
-strcpy(ptr, "Hello");
-
-// 5. Detach
-shmdt(ptr);
-
-// 6. 삭제
-shmctl(shmid, IPC_RMID, NULL);
-```
-
-**POSIX vs System V**:
-
-| 항목 | POSIX (shm_open) | System V (shmget) |
-|------|------------------|-------------------|
-| 이름 | 파일명 (`/myshm`) | 숫자 Key |
-| 생성 | shm_open() | shmget() |
-| 매핑 | mmap() | shmat() |
-| 삭제 | shm_unlink() | shmctl(IPC_RMID) |
-| 추천 | ✅ 모던, 간단 | ⚠️ 레거시 |
-
-**권장**: POSIX 방식 사용!
+Pipe는 편리하지만, 데이터를 주고받을 때 **User → Kernel → User**로 2번 복사됩니다.  
+Shared Memory는 **커널 복사 없이 Zero-copy**로 바로 접근 가능하죠.  
+그래서 데이터가 많을수록 차이가 크게 납니다.
 
 ---
 
-## 성능 비교
+### Pipe 벤치마크 예제
 
-### Benchmark: Pipe vs Shared Memory
-
-```c
-// 10MB 데이터 전송
-
-// Pipe
-write(pipefd[1], data, 10MB);
-read(pipefd[0], buf, 10MB);
-// 시간: ~50ms
-
-// Shared Memory
-memcpy(shm_ptr, data, 10MB);
-// 시간: ~5ms
-
-→ 10배 빠름!
-```
-
----
-
-### 실제 측정
-
-```c
+~~~
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
 #include <time.h>
 
-// Pipe 벤치마크
-clock_t start = clock();
-for (int i = 0; i < 1000; i++) {
-    write(pipefd[1], data, 1024);
-    read(pipefd[0], buf, 1024);
+int main() {
+    int pipefd[2];
+    if (pipe(pipefd) == -1) { perror("pipe"); return 1; }
+
+    char data[1024];
+    char buf[1024];
+    memset(data, 'A', sizeof(data));
+
+    clock_t start = clock();
+
+    for (int i = 0; i < 1000; i++) {
+        write(pipefd[1], data, sizeof(data));
+        read(pipefd[0], buf, sizeof(buf));
+    }
+
+    clock_t end = clock();
+    printf("Pipe: %lf ms\n", 
+           (double)(end - start) / CLOCKS_PER_SEC * 1000);
+
+    return 0;
 }
-clock_t end = clock();
-printf("Pipe: %lf ms\n", 
-       (double)(end - start) / CLOCKS_PER_SEC * 1000);
+~~~
 
-// Shared Memory 벤치마크
-start = clock();
-for (int i = 0; i < 1000; i++) {
-    memcpy(shm_ptr, data, 1024);
-    // (실제론 Synchronization 필요)
+**결과** 예시 (1KB × 1000회 전송):
+Pipe: 15.2 ms
+
+~~~
+
+
+
+---
+
+### Shared Memory 벤치마크 예제
+
+~~~
+#include <stdio.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <time.h>
+
+int main() {
+    int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
+    ftruncate(shm_fd, 1024);
+
+    char *shm_ptr = mmap(NULL, 1024, PROT_READ | PROT_WRITE,
+                         MAP_SHARED, shm_fd, 0);
+
+    char data[1024];
+    memset(data, 'A', sizeof(data));
+
+    clock_t start = clock();
+
+    for (int i = 0; i < 1000; i++) {
+        memcpy(shm_ptr, data, sizeof(data));
+        // 실제로는 Synchronization 필요
+    }
+
+    clock_t end = clock();
+    printf("Shared Memory: %lf ms\n",
+           (double)(end - start) / CLOCKS_PER_SEC * 1000);
+
+    munmap(shm_ptr, 1024);
+    close(shm_fd);
+    shm_unlink("/myshm");
+
+    return 0;
 }
-end = clock();
-printf("Shared Memory: %lf ms\n",
-       (double)(end - start) / CLOCKS_PER_SEC * 1000);
-```
+~~~
 
-**결과** (1KB × 1000회):
+**결과** 예시:
+Shared Memory: 1.3 ms
 
-```
-Pipe:          15.2 ms
-Shared Memory:  1.3 ms
+~~~
 
-→ 11배 차이!
-```
+
 
 ---
 
-## 주의사항
+### 결론
 
-### 1. Synchronization 필요!
+| 항목 | Pipe | Shared Memory |
+|------|------|---------------|
+| 복사 | 2번 (User→Kernel→User) | 0번 (Zero-copy) |
+| 속도 | 느림 | 빠름 (10배 이상) |
+| 데이터 크기 | 제한적 (64KB 정도) | 큰 데이터도 OK |
+| Sync | FIFO 자동 | 수동 (Mutex 필요) |
 
-```c
-// 문제 상황
-// Process A
-shm_ptr[0] = 42;  // 쓰기
-
-// Process B (동시에)
-int x = shm_ptr[0];  // 읽기
-// → Race Condition!
-```
-
-**해결** (Part 5에서 자세히):
-
-```c
-// Mutex 사용
-pthread_mutex_lock(&mutex);
-shm_ptr[0] = 42;
-pthread_mutex_unlock(&mutex);
-```
+**정리**:  
+- **작은 데이터, 단순 통신** → Pipe  
+- **대용량 데이터, 빠른 접근 필요** → Shared Memory  
 
 ---
 
-### 2. 메모리 누수
+## Shared Memory와 Synchronization
 
-```c
-// 잘못된 예
-shm_open("/myshm", O_CREAT | O_RDWR, 0666);
-// ... crash!
-// → shm_unlink() 안 함
-// → /dev/shm/myshm 파일 남음!
-
-// 확인
-$ ls -lh /dev/shm/
--rw-r--r-- 1 user user 4.0K ... myshm  ← 좀비 파일!
-
-// 수동 삭제
-$ rm /dev/shm/myshm
-```
-
-**올바른 패턴**:
-
-```c
-int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
-// ... 사용 ...
-munmap(ptr, size);
-close(shm_fd);
-shm_unlink("/myshm");  // 반드시!
-```
+Shared Memory는 빠르지만, 여러 프로세스가 동시에 접근하면 **Race Condition**이 발생할 수 있어요.  
+즉, 한 프로세스가 데이터를 쓰는 동안 다른 프로세스가 읽거나 쓰면 **예상치 못한 값**이 읽힐 수 있습니다.
 
 ---
 
-### 3. 크기 제한
+### 문제 상황 예제
 
-```bash
-# 시스템 한계 확인
-$ cat /proc/sys/kernel/shmmax
-18446744073692774399  # 약 16EB (충분!)
+~~~
+shm_ptr[0] = 42;  // Process A가 쓰는 중
 
-$ cat /proc/sys/kernel/shmall
-18446744073692774399  # 전체 페이지 수
+// 동시에 Process B가 읽으면?
+int x = shm_ptr[0];
+// → x가 42가 아닐 수도 있음!
+~~~
 
-# /dev/shm 크기 (tmpfs)
-$ df -h /dev/shm
-Filesystem      Size  Used Avail Use% Mounted on
-tmpfs           7.7G  100M  7.6G   2% /dev/shm
-```
+**결과**: 데이터 불일치 발생 → 프로그램 버그로 이어질 수 있음
 
 ---
 
-## 실전 활용
+### POSIX Mutex를 사용한 해결
 
-### 1. 대용량 데이터 공유
+Shared Memory 영역 내에 **pthread_mutex_t**를 넣어 동기화합니다.
 
-```c
-// 이미지 처리 파이프라인
-// Process A: 카메라에서 프레임 캡처
-// Process B: 이미지 처리
-// Process C: 화면 출력
+#### 초기화
 
-// Shared Memory로 프레임 공유
-struct Frame {
-    uint8_t data[1920 * 1080 * 3];  // RGB
-    uint64_t timestamp;
-};
+~~~
+#include <pthread.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-void *shm = mmap(..., sizeof(struct Frame), ...);
-struct Frame *frame = (struct Frame *)shm;
+typedef struct {
+    pthread_mutex_t mutex;
+    int value;
+} shm_data_t;
 
-// Process A
-capture_frame(frame->data);
-frame->timestamp = get_time();
+int main() {
+    int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
+    ftruncate(shm_fd, sizeof(shm_data_t));
 
-// Process B (즉시 접근!)
-process_image(frame->data);
+    shm_data_t *shm_ptr = mmap(NULL, sizeof(shm_data_t),
+                               PROT_READ | PROT_WRITE,
+                               MAP_SHARED, shm_fd, 0);
 
-// Process C (즉시 출력!)
-display(frame->data);
-```
+    // Mutex 초기화 (다중 프로세스 공유)
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_setpshared(&attr, PTHREAD_PROCESS_SHARED);
+    pthread_mutex_init(&shm_ptr->mutex, &attr);
 
----
+    return 0;
+}
+~~~
 
-### 2. Database Shared Buffer
+#### 사용 예제
 
-```c
-// PostgreSQL, MySQL 등에서 사용
+~~~
+void write_value(shm_data_t *ptr, int val) {
+    pthread_mutex_lock(&ptr->mutex);
+    ptr->value = val;
+    pthread_mutex_unlock(&ptr->mutex);
+}
 
-// Shared Buffer Pool
-void *buffer_pool = mmap(..., 1GB, MAP_SHARED, ...);
+int read_value(shm_data_t *ptr) {
+    pthread_mutex_lock(&ptr->mutex);
+    int val = ptr->value;
+    pthread_mutex_unlock(&ptr->mutex);
+    return val;
+}
+~~~
 
-// 여러 백엔드 프로세스가 공유
-// → Disk I/O 최소화
-// → 성능 향상
-```
-
----
-
-### 3. 게임 서버 상태 공유
-
-```c
-// 게임 서버
-struct GameState {
-    Player players[100];
-    Map map;
-    int score;
-};
-
-// Main process가 상태 관리
-void *shm = mmap(..., sizeof(GameState), ...);
-GameState *state = (GameState *)shm;
-
-// Worker processes (읽기 전용)
-// → 즉시 상태 조회
-// → Pipe보다 훨씬 빠름
-```
+> **포인트**: Mutex를 사용하면 한 번에 한 프로세스만 데이터에 접근 가능 → Race Condition 방지
 
 ---
 
-## 디버깅
+### System V Semaphores 예제
 
-### 1. /dev/shm 확인
+POSIX Mutex 대신 전통적인 **System V Semaphore**도 사용 가능:
 
-```bash
-# 생성된 Shared Memory 목록
-$ ls -lh /dev/shm/
--rw-r--r-- 1 user user 4.0K ... myshm
--rw-r--r-- 1 user user 1.0M ... game_state
+~~~
+#include <sys/sem.h>
+#include <sys/ipc.h>
 
-# 내용 확인 (텍스트면)
-$ cat /dev/shm/myshm
-Hello from Producer!
+key_t key = ftok("/tmp/myfile", 'R');
+int semid = semget(key, 1, IPC_CREAT | 0666);
 
-# 크기 확인
-$ du -h /dev/shm/myshm
-4.0K    /dev/shm/myshm
-```
+// Semaphore 초기화
+union semun {
+    int val;
+} arg;
+arg.val = 1;
+semctl(semid, 0, SETVAL, arg);
 
----
+// 사용
+struct sembuf sb = {0, -1, 0};  // P 연산 (wait)
+semop(semid, &sb, 1);
 
-### 2. ipcs / ipcrm (System V)
+shm_ptr->value = 42;             // critical section
 
-```bash
-# System V Shared Memory 확인
-$ ipcs -m
------- Shared Memory Segments --------
-key        shmid      owner      perms      bytes      nattch
-0x52001234 0          user       666        4096       2
+sb.sem_op = 1;                   // V 연산 (signal)
+semop(semid, &sb, 1);
+~~~
 
-# 삭제
-$ ipcrm -m 0
-```
+> **팁**: POSIX Mutex가 더 간단하고, 다중 프로세스 환경에서도 안전하게 사용 가능
 
 ---
 
-### 3. strace로 추적
+### 요약
 
-```bash
-$ strace -e shm_open,mmap,munmap ./producer
-
-shm_open("/myshm", O_RDWR|O_CREAT, 0666) = 3
-ftruncate(3, 4096) = 0
-mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0) = 0x7f...
-...
-munmap(0x7f..., 4096) = 0
-```
+- Shared Memory는 **Zero-copy로 빠르지만**, 동시에 접근하면 **Race Condition** 위험
+- **POSIX Mutex**나 **Semaphore**를 통해 안전하게 동기화 필요
+- Synchronization 없이는 데이터 손상 가능 → 실전에서 반드시 적용
 
 ---
-
-## 고급 주제
-
-### 1. mmap() 플래그
-
-```c
-// MAP_SHARED: 변경사항 공유 (IPC용)
-mmap(..., MAP_SHARED, ...);
-
-// MAP_PRIVATE: Copy-on-Write (독립)
-mmap(..., MAP_PRIVATE, ...);
-
-// MAP_ANONYMOUS: 파일 없이 메모리만
-// (fork() 시 부모-자식 간 공유)
-mmap(..., MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-
-// MAP_LOCKED: Swap 방지 (메모리 고정)
-mmap(..., MAP_LOCKED, ...);
-
-// MAP_HUGETLB: Huge Pages 사용 (성능)
-mmap(..., MAP_HUGETLB, ...);
-```
-
----
-
-### 2. File-backed vs Anonymous
-
-```c
-// File-backed (POSIX Shared Memory)
-int fd = shm_open("/myshm", ...);
-mmap(..., fd, 0);
-// → /dev/shm/myshm 파일 생성
-// → 무관한 프로세스도 접근 가능
-
-// Anonymous (fork 전용)
-void *shm = mmap(NULL, size, PROT_READ|PROT_WRITE,
-                 MAP_SHARED | MAP_ANONYMOUS, -1, 0);
-fork();
-// → 부모-자식만 공유
-// → 파일 안 생김
-```
-
----
-
-### 3. msync() - 디스크 동기화
-
-```c
-// Shared Memory 변경사항을 디스크에 저장
-void *shm = mmap(..., fd, 0);
-
-// 데이터 수정
-strcpy(shm, "Important data");
-
-// 디스크에 강제 쓰기
-msync(shm, size, MS_SYNC);  // 블로킹
-// 또는
-msync(shm, size, MS_ASYNC); // 비블로킹
-```
-
 ---
 
 ## 정리
 
-### 핵심 개념
+이번 글에서는 Pipe의 한계를 극복하는 **Shared Memory**를 살펴봤습니다. 핵심 내용을 정리하면 다음과 같습니다.
 
-**1. Shared Memory**
+### 1. Shared Memory 특징
+- 여러 프로세스가 같은 물리 메모리를 **직접 공유**  
+- **Zero-copy**: 데이터 복사 없이 IPC 가능  
+- 대용량 데이터 전달과 빈번한 접근에서 **가장 빠른 IPC 방식**
 
-```
-✓ 여러 프로세스가 같은 물리 메모리 공유
-✓ Zero-copy (복사 없음)
-✓ 가장 빠른 IPC
-```
-
-**2. POSIX 방식 (추천)**
-
-```c
+### 2. POSIX 방식 (추천)
+~~~
 shm_open()   → Shared Memory 생성
 ftruncate()  → 크기 설정
 mmap()       → 메모리 매핑
-// 사용
+// 사용 후
 munmap()     → 매핑 해제
 shm_unlink() → 삭제
-```
+~~~
 
-**3. 성능**
-
-```
-Pipe:          2번 복사 (User→Kernel→User)
-Shared Memory: 0번 복사 (Zero-copy)
-
-→ 10배 이상 빠름!
-```
-
----
-
-### Pipe vs Shared Memory
-
+### 3. Pipe와 비교
 | 항목 | Pipe | Shared Memory |
 |------|------|---------------|
-| 복사 | 2번 | 0번 (Zero-copy) |
-| 속도 | 느림 | 빠름 (10배+) |
-| 사용 | 간단 | 약간 복잡 |
-| Sync | 자동 (FIFO) | 수동 (Mutex 필요) |
-| 크기 | 제한적 (64KB) | 큰 데이터 OK |
-| 용도 | 작은 데이터 | 큰 데이터, 빈번한 접근 |
+| 데이터 복사 | 2번 (User→Kernel→User) | 0번 (Zero-copy) |
+| 속도 | 느림 | 빠름 (10배 이상) |
+| 사용 난이도 | 간단 | 약간 복잡 |
+| 동기화 | 자동(FIFO) | 수동(Mutex 필요) |
+| 크기 | 제한적 (64KB) | 큰 데이터 가능 |
+| 용도 | 작은 데이터, 단방향 | 큰 데이터, 다중 프로세스, 실시간 공유 |
 
----
-
-### 선택 기준
-
-**Pipe 사용**:
-
-```
+### 4. 선택 기준
+**Pipe**
+~~~
 ✓ 작은 데이터 (<1KB)
 ✓ 단방향 통신
-✓ Producer-Consumer 패턴
+✓ 간단한 Producer-Consumer
 ✓ Shell 파이프라인
-```
-
-**Shared Memory 사용**:
-
-```
+~~~
+**Shared Memory**
+~~~
 ✓ 큰 데이터 (>1MB)
 ✓ 빈번한 데이터 교환
 ✓ 다중 Reader/Writer
 ✓ 실시간 데이터 공유
 ✓ 성능이 중요한 경우
-```
+~~~
 
 ---
 
-### 다음 편 예고
+## 다음 글 예고
 
-**Part 4: Virtual Memory**  
-"메모리 주소는 환상이다"
+**Part 4: Virtual Memory – "메모리 주소는 환상이다"**  
 
-Shared Memory를 이해하려면 **가상 메모리**를 알아야 합니다.
+Shared Memory가 어떻게 가능했는지 이해하려면 **가상 메모리(Virtual Memory)**를 알아야 합니다.  
+다음 글에서는 다음을 다룹니다:
 
-```c
-// 다음 편에서 다룰 내용
-
-// 두 프로세스가 다른 가상 주소로 같은 물리 메모리 접근?
-Process A: 0x1000 ─┐
-                   ├→ Physical: 0xABCD
-Process B: 0x5000 ─┘
-
-// 어떻게 가능할까?
-// → Page Table!
-
-malloc(1GB);  // 즉시 리턴 (실제 할당 안 함!)
-ptr[0] = 42;  // 이제서야 할당 (Page Fault)
-
-fork();       // Copy-on-Write
-// → Shared Memory와 유사한 메커니즘!
-```
-
-**다룰 주제**:
 - Virtual Address → Physical Address 변환
-- Page Table (4-level)
+- Page Table (4-level paging)
 - TLB (Translation Lookaside Buffer)
 - Page Fault 처리
 - Copy-on-Write 심화
-- Memory-Mapped I/O (mmap 내부 동작)
+- Memory-Mapped I/O 내부 동작
 
-Shared Memory가 **어떻게 작동하는지** 알아봅시다!
+Shared Memory와 가상 메모리의 연결 고리를 이해하며, OS 내부 메모리 구조를 깊이 있게 들여다보겠습니다.
 
 ---
 

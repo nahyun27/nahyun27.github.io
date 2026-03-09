@@ -93,6 +93,8 @@ order: 4
 | 🎙️ [PerSI](https://github.com/PerSI-Org) | 청각장애인을 위한 화자 인식 시스템 | wav2vec2, pyannote, PyTorch |
 | 💊 [ToFindPill](https://github.com/ToFindPill) | 사진으로 약 식별하는 모바일 앱 | YOLOv5/v8, React Native |
 
+[for More!](https://nahyun.vercel.app/)
+
 ---
 
 ## 📬 Contact
