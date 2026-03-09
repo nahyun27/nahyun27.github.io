@@ -4,6 +4,7 @@ title: "HTLC: 라이트닝 네트워크의 핵심 메커니즘 완벽 이해"
 date: 2025-11-26 14:00:00 +0900
 categories: [Blockchain, Lightning Network]
 tags: [blockchain, bitcoin, lightning-network, htlc, smart-contract]
+description: "Blockchain – HTLC: Hash Time-Locked Contract로 구현하는 신뢰 없는 결제, 라이트닝 네트워크의 Layer 2 메커니즘"
 image:
   path: /assets/img/posts/htlc/htlc-cover.png
   alt: HTLC Hash Time Locked Contract

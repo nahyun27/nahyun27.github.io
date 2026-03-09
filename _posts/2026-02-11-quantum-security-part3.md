@@ -4,6 +4,7 @@ title: "[양자컴퓨터 입문 #3] 양자컴퓨터와 보안 - RSA는 끝났나
 date: 2026-02-11 14:00:00 +0900
 categories: [Quantum Computing, Basics]
 tags: [quantum-computing, post-quantum-cryptography, quantum-key-distribution, nist, rsa, security]
+description: "양자컴퓨터 입문 #3 – 양자 보안: NIST PQC 표준(ML-KEM, FALCON, SPHINCS+)과 QKD로 대응하는 포스트양자 시대"
 image:
   path: /assets/img/quantum/quantum-security.png
   alt: Quantum Computing and Security
