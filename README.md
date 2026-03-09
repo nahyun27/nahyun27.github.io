@@ -15,7 +15,7 @@
 
 - **[Part 1: Process & Execution](https://nahyun27.github.io/posts/os-process-part1/)** - `ls`를 치면 무슨 일이 일어날까?
 - **[Part 2: IPC - Pipe](https://nahyun27.github.io/posts/os-ipc-pipe-part2/)** - `ls | grep .c`는 어떻게 동작할까?
-- **[Part 3: Virtual Memory](https://nahyun27.github.io/posts/os-virtual-memory-part3/)** - Virtual Memory
+- **[Part 3: Shared Memory](https://nahyun27.github.io/posts/os-shared-memory-part3/)** - Zero Copy IPC, Shared Memory
 - [ ] Part 4: Synchronization & Deadlock
 - [ ] Part 5: File System Internals
 

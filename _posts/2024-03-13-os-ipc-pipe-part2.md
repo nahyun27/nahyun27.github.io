@@ -4,6 +4,7 @@ title: "[운영체제 Deep Dive #2] ls | grep .c는 어떻게 동작할까? - Pi
 date: 2024-03-13 14:00:00 +0900
 categories: [Operating System, IPC]
 tags: [operating-system, linux, ipc, pipe, dup2, file-descriptor, signal, nsh]
+description: "운영체제 Deep Dive #2 – Pipe와 IPC: ls | grep 동작, 파이프, dup2, 파일 디스크립터, 신호 처리까지."
 image:
   path: /assets/img/os/pipe-ipc.png
   alt: Inter-Process Communication with Pipes

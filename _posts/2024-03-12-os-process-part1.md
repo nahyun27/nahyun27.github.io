@@ -4,6 +4,7 @@ title: "[운영체제 Deep Dive #1] ls를 치면 무슨 일이 일어날까? - P
 date: 2024-03-12 14:00:00 +0900
 categories: [Operating System, Process]
 tags: [operating-system, linux, process, fork, exec, pcb, nsh, shell]
+description: "운영체제 Deep Dive #1 – 프로세스와 스케줄링: 프로세스 생성, 상태 전이, 스케줄러 동작 방식 분석."
 image:
   path: /assets/img/os/process-creation.png
   alt: Process Creation in Linux
