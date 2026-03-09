@@ -13,1318 +13,1027 @@ series: 운영체제 Deep Dive
 
 ## 들어가며
 
-터미널에서 이 명령을 쳐보세요:
-
-```bash
-$ ls | grep .c
-file1.c
-file2.c
-main.c
-```
-
-파일 목록 중 `.c`로 끝나는 것만 필터링됩니다. 너무나 자연스럽죠.
-
-하지만 **어떻게** `ls`의 출력이 `grep`의 입력으로 연결될까요?
-
-```c
-// nsh에서 파이프 구현
-int pipefd[2];
-pipe(pipefd);           // 1. 파이프 생성
-
-pid_t pid = fork();
-if (pid == 0) {
-    dup2(pipefd[1], STDOUT_FILENO);  // 2. stdout → pipe
-    close(pipefd[0]);
-    close(pipefd[1]);
-    exec("ls");
-}
-else {
-    dup2(pipefd[0], STDIN_FILENO);   // 3. pipe → stdin
-    close(pipefd[0]);
-    close(pipefd[1]);
-    exec("grep");
-}
-```
-
-이 **10줄**이 Unix의 철학이자 파워입니다!
-
 오늘은 **IPC (Inter-Process Communication)**, 특히 **Pipe**를 파헤쳐봅시다.
 
----
+터미널에서 우리는 다음과 같은 명령을 매우 자주 사용합니다.
 
-## IPC란?
+~~~
+ls | grep .c
+~~~
 
-### Inter-Process Communication
+이 명령은 직관적으로 보면 다음과 같은 의미입니다.
 
-**정의**: 프로세스 간 데이터 교환 메커니즘
+- `ls`가 현재 디렉토리의 파일 목록을 출력하고
+- 그 결과를 `grep .c`가 받아서
+- `.c`가 포함된 파일만 필터링합니다.
 
-**왜 필요한가?**
+즉,
 
-[Part 1]({% post_url 2024-03-12-os-process-part1 %})에서 배웠듯이:
-```
-fork() 후:
-부모와 자식의 메모리 공간은 독립!
+~~~
+ls의 출력 → grep의 입력
+~~~
 
-int x = 10;
-fork();
-// 부모가 x = 20 해도
-// 자식의 x는 여전히 10!
-```
-
-**프로세스 간 통신 방법 필요!**
+이라는 **데이터 흐름**이 만들어집니다.
 
 ---
 
-### IPC 종류
+## 프로그램 두 개가 동시에 동작한다
 
-| 방법 | 설명 | 속도 | 사용 |
-|------|------|------|------|
-| **Pipe** | 단방향 데이터 스트림 | 빠름 | Shell 파이프 |
-| **Named Pipe (FIFO)** | 이름있는 파이프 | 빠름 | 무관한 프로세스 |
-| **Message Queue** | 메시지 큐 | 중간 | 비동기 통신 |
-| **Shared Memory** | 공유 메모리 | **매우 빠름** | 대용량 데이터 |
-| **Socket** | 네트워크 통신 | 느림 | 네트워크/IPC |
-| **Signal** | 이벤트 알림 | 빠름 | 프로세스 제어 |
+이 명령이 실행되면 실제로는 **두 개의 프로그램이 동시에 실행됩니다.**
 
-**오늘의 주인공**: **Pipe** & **Signal**
+~~~
+ls
+grep .c
+~~~
 
----
+그리고 이 두 프로그램 사이에는 다음과 같은 연결이 생깁니다.
 
-## File Descriptor (파일 디스크립터)
+~~~
+ls (stdout)
+     │
+     │ pipe
+     ▼
+grep (stdin)
+~~~
 
-### FD란?
+여기서 중요한 점은 다음입니다.
 
-**정의**: 열린 파일을 가리키는 **정수 인덱스**
+- `ls`는 결과를 **표준 출력(stdout)** 으로 출력합니다.
+- `grep`은 데이터를 **표준 입력(stdin)** 으로 읽습니다.
 
-```c
-int fd = open("file.txt", O_RDONLY);
-// fd = 3 (보통)
-
-read(fd, buffer, size);
-write(fd, data, size);
-close(fd);
-```
+그리고 Shell은 이 둘을 **Pipe**로 연결합니다.
 
 ---
 
-### 기본 FD (0, 1, 2)
+## 그렇다면 Shell은 무엇을 할까?
 
-```c
-#define STDIN_FILENO  0  // 표준 입력 (키보드)
-#define STDOUT_FILENO 1  // 표준 출력 (화면)
-#define STDERR_FILENO 2  // 표준 에러 (화면)
-```
+이 명령을 실행하기 위해 Shell은 다음과 같은 작업을 수행합니다.
 
-**프로세스 시작 시 자동으로 열림!**
+1. Pipe 생성
+2. 두 개의 프로세스 생성 (`fork()` 두 번)
+3. 각 프로세스의 입출력 재연결 (`dup2()`)
+4. 각각의 프로그램 실행 (`exec()`)
 
----
+흐름을 단순화하면 다음과 같습니다.
 
-### FD Table
+~~~
+Shell
+ │
+ │ pipe()
+ ▼
+Pipe 생성
+ │
+ ├─ fork() → ls 프로세스
+ │
+ └─ fork() → grep 프로세스
+~~~
 
-```
-Process의 FD Table:
-┌───┬──────────────┐
-│ 0 │ → keyboard   │ STDIN
-├───┼──────────────┤
-│ 1 │ → terminal   │ STDOUT
-├───┼──────────────┤
-│ 2 │ → terminal   │ STDERR
-├───┼──────────────┤
-│ 3 │ → file.txt   │
-├───┼──────────────┤
-│ 4 │ → socket     │
-├───┼──────────────┤
-│ 5 │ → pipe[0]    │
-└───┴──────────────┘
-```
+그리고 각각의 프로세스에서 입출력이 다음과 같이 연결됩니다.
 
-**FD는 프로세스마다 독립적!**
+~~~
+ls stdout  ─────┐
+                │
+             [ Pipe ]
+                │
+grep stdin ─────┘
+~~~
 
----
-
-### FD 할당 규칙
-
-**Lowest Available FD**:
-
-```c
-int fd1 = open("file1.txt", O_RDONLY);  // fd1 = 3
-int fd2 = open("file2.txt", O_RDONLY);  // fd2 = 4
-
-close(fd1);                              // fd 3 해제
-
-int fd3 = open("file3.txt", O_RDONLY);  // fd3 = 3 (재사용!)
-```
+이 구조 덕분에 `ls`가 출력하는 데이터가 **실시간으로 `grep`에게 전달**됩니다.
 
 ---
 
-## Pipe의 기초
+## 이 모든 것이 IPC입니다
 
-### pipe() 시스템콜
+이렇게 **프로세스 간에 데이터를 전달하는 기술**을 운영체제에서는 다음과 같이 부릅니다.
 
-```c
-#include <unistd.h>
+> **IPC (Inter-Process Communication)**
 
-int pipefd[2];
-int result = pipe(pipefd);
+즉,
 
-// 성공 시:
-// pipefd[0]: read end (읽기용)
-// pipefd[1]: write end (쓰기용)
-```
+**프로세스 간 통신**입니다.
 
-**동작**:
-```
-pipefd[1] (write) → [Kernel Buffer] → pipefd[0] (read)
-```
+Linux에서는 다양한 IPC 방법이 존재합니다.
 
----
+대표적으로 다음과 같은 것들이 있습니다.
 
-### 단순 Pipe 예제
+- Pipe
+- Named Pipe (FIFO)
+- Message Queue
+- Shared Memory
+- Socket
+- Signal
 
-```c
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-
-int main() {
-    int pipefd[2];
-    char buffer[100];
-    
-    // 1. 파이프 생성
-    pipe(pipefd);
-    
-    // 2. 데이터 쓰기
-    char *msg = "Hello from pipe!";
-    write(pipefd[1], msg, strlen(msg) + 1);
-    
-    // 3. 데이터 읽기
-    read(pipefd[0], buffer, sizeof(buffer));
-    
-    printf("Received: %s\n", buffer);
-    
-    // 4. 파이프 닫기
-    close(pipefd[0]);
-    close(pipefd[1]);
-    
-    return 0;
-}
-```
-
-**출력**:
-```
-Received: Hello from pipe!
-```
+이 글에서는 그중에서도 **가장 기본적이고 중요한 IPC인 Pipe**를 집중적으로 살펴보겠습니다.
 
 ---
 
-### fork()와 함께 사용
+## Pipe란 무엇인가
 
-```c
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
+Pipe는 **두 프로세스 사이에 데이터를 전달하기 위한 커널 버퍼**입니다.
 
-int main() {
-    int pipefd[2];
-    pipe(pipefd);
-    
-    pid_t pid = fork();
-    
-    if (pid == 0) {
-        // 자식: 읽기만
-        close(pipefd[1]);  // 쓰기 끝 닫기
-        
-        char buffer[100];
-        read(pipefd[0], buffer, sizeof(buffer));
-        printf("Child received: %s\n", buffer);
-        
-        close(pipefd[0]);
-    }
-    else {
-        // 부모: 쓰기만
-        close(pipefd[0]);  // 읽기 끝 닫기
-        
-        char *msg = "Hello from parent!";
-        write(pipefd[1], msg, strlen(msg) + 1);
-        
-        close(pipefd[1]);
-        wait(NULL);
-    }
-    
-    return 0;
-}
-```
+개념적으로 보면 다음과 같습니다.
 
-**중요**:
-- 사용 안 하는 끝은 **반드시 닫기**!
-- 안 닫으면 → Blocking 발생 가능
+~~~
+Process A
+   │ write()
+   ▼
+[ Kernel Pipe Buffer ]
+   ▲
+   │ read()
+Process B
+~~~
+
+특징은 다음과 같습니다.
+
+- **한쪽은 쓰기(write)**
+- **다른 쪽은 읽기(read)**
+
+즉 **단방향 데이터 흐름**입니다.
+
+그리고 이 Pipe는 커널이 관리합니다.
 
 ---
 
-## dup2(): FD 복제의 마법
+## pipe() 시스템 콜
 
-### dup2()란?
+Pipe를 만들기 위해 Linux에서는 다음 시스템 콜을 사용합니다.
 
-```c
-#include <unistd.h>
+~~~
+int pipe(int fd[2]);
+~~~
 
+이 함수는 **두 개의 파일 디스크립터**를 반환합니다.
+
+~~~
+fd[0] → 읽기(Read End)
+fd[1] → 쓰기(Write End)
+~~~
+
+구조를 그림으로 보면 다음과 같습니다.
+
+~~~
+Process
+ │
+ │ pipe(fd)
+ ▼
+
+fd[0]  ← read
+ │
+[ PIPE BUFFER ]
+ │
+fd[1]  → write
+~~~
+
+즉
+
+- `fd[1]` 로 데이터를 쓰면
+- `fd[0]` 에서 읽을 수 있습니다.
+
+---
+
+## 그런데 ls는 pipe를 모르는데?
+
+여기서 중요한 질문이 하나 생깁니다.
+
+`ls` 프로그램은 **Pipe의 존재를 전혀 모릅니다.**
+
+`ls`는 단순히 다음처럼 동작할 뿐입니다.
+
+~~~
+printf(...)
+write(STDOUT, ...)
+~~~
+
+즉 `ls`는 단지 **표준 출력(stdout)** 으로 데이터를 보내고 있을 뿐입니다.
+
+그렇다면 어떻게 `ls`의 출력이 **Pipe로 들어갈 수 있을까요?**
+
+이 질문을 이해하려면 먼저 **Linux의 입출력 구조**를 알아야 합니다.
+
+핵심 개념이 바로 **File Descriptor** 입니다.
+
+---
+
+## File Descriptor
+
+Linux에서 모든 입출력은 **File Descriptor(FD)** 라는 정수 번호로 관리됩니다.
+
+File Descriptor는 **프로세스가 열어둔 파일이나 입출력 자원을 가리키는 핸들**입니다.
+
+예를 들어 프로그램이 실행되면 기본적으로 다음 세 가지 FD가 열려 있습니다.
+
+~~~
+0 → stdin   (표준 입력)
+1 → stdout  (표준 출력)
+2 → stderr  (표준 에러)
+~~~
+
+즉 우리가 터미널에서 프로그램을 실행하면 다음과 같은 구조가 됩니다.
+
+~~~
+Keyboard
+   │
+   ▼
+stdin (0)
+
+stdout (1)
+   │
+   ▼
+Terminal 화면
+
+stderr (2)
+   │
+   ▼
+Terminal 화면
+~~~
+
+예를 들어 `ls` 프로그램은 단순히 다음처럼 출력할 뿐입니다.
+
+~~~
+write(1, "file1.c\n", 8);
+~~~
+
+여기서 `1`은 **stdout**을 의미합니다.
+
+즉 `ls`는 단지 **표준 출력으로 데이터를 보내고 있을 뿐**입니다.
+
+---
+
+## 그런데 파이프에서는 무슨 일이 일어날까?
+
+다시 우리가 처음 본 명령을 보겠습니다.
+
+~~~
+ls | grep .c
+~~~
+
+이 명령의 핵심은 다음과 같습니다.
+
+~~~
+ls stdout → grep stdin
+~~~
+
+즉
+
+- `ls`의 **stdout (FD 1)**
+- `grep`의 **stdin (FD 0)**
+
+이 둘이 **Pipe로 연결**되어야 합니다.
+
+개념적으로 보면 다음과 같습니다.
+
+~~~
+ls (FD 1)
+   │
+   ▼
+[ PIPE ]
+   ▲
+   │
+grep (FD 0)
+~~~
+
+하지만 기본적으로
+
+- stdout은 **터미널**
+- stdin은 **키보드**
+
+에 연결되어 있습니다.
+
+따라서 Shell은 **File Descriptor를 다른 곳으로 바꿔야 합니다.**
+
+이 작업을 수행하는 시스템 콜이 바로
+
+~~~
+dup2()
+~~~
+
+입니다.
+
+---
+
+## dup2()로 입출력 재연결하기
+
+이제 Shell이 어떻게 **stdout을 Pipe로 바꾸는지** 살펴보겠습니다.
+
+이를 위해 사용하는 시스템 콜이 바로 다음 함수입니다.
+
+~~~
 int dup2(int oldfd, int newfd);
-```
+~~~
 
-**동작**:
-1. `newfd`가 열려있으면 먼저 닫음
-2. `oldfd`를 `newfd`로 복제
-3. 이제 `newfd` == `oldfd` (같은 파일 가리킴)
+`dup2()`는 **File Descriptor를 복제하여 다른 번호로 연결하는 함수**입니다.
 
----
+동작은 다음과 같습니다.
 
-### dup2() 시각화
+~~~
+dup2(oldfd, newfd)
+~~~
 
-**Before**:
-```
-FD Table:
-0 → keyboard
-1 → terminal
-3 → file.txt
-```
+의 의미는
 
-**After `dup2(3, 1)`**:
-```
-FD Table:
-0 → keyboard
-1 → file.txt  ← 복제됨!
-3 → file.txt
-```
+~~~
+newfd → oldfd가 가리키는 대상과 동일한 곳을 가리키도록 만든다
+~~~
 
-**효과**:
-```c
-printf("Hello");  // terminal이 아닌 file.txt로!
-```
+입니다.
 
----
+예를 들어 다음 코드가 있다고 가정해보겠습니다.
 
-### 리다이렉션 구현
+~~~
+dup2(pipefd[1], 1);
+~~~
 
-```c
-// command > output.txt 구현
-int fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-dup2(fd, STDOUT_FILENO);  // stdout → output.txt
-close(fd);
+이 코드는 다음과 같은 의미입니다.
 
-printf("This goes to file!\n");  // output.txt에 기록
-```
+~~~
+stdout(1) → pipefd[1]
+~~~
 
-**Before fork()**:
-```
-Parent FD:
-1 → terminal
-```
+즉 **표준 출력(stdout)이 Pipe의 write end로 바뀝니다.**
 
-**After fork() + dup2()**:
-```
-Child FD:
-1 → output.txt  ← 리다이렉션!
-```
+구조를 보면 다음과 같습니다.
+
+~~~
+Before
+
+stdout (1)
+   │
+   ▼
+Terminal
+~~~
+
+~~~
+After
+
+stdout (1)
+   │
+   ▼
+Pipe write end
+~~~
+
+이제 프로그램이 `printf()`나 `write(1, ...)`를 호출하면  
+데이터는 **터미널이 아니라 Pipe로 들어가게 됩니다.**
 
 ---
 
-### 입력 리다이렉션
+## grep 쪽에서는 어떻게 될까?
 
-```c
-// command < input.txt 구현
-int fd = open("input.txt", O_RDONLY);
-dup2(fd, STDIN_FILENO);  // stdin → input.txt
-close(fd);
+이번에는 `grep` 프로세스를 생각해 보겠습니다.
 
-char buffer[100];
-scanf("%s", buffer);  // input.txt에서 읽음!
-```
+`grep`은 입력을 **stdin**으로 읽습니다.
 
----
+예를 들어 내부적으로 다음과 같은 호출을 합니다.
 
-## Pipe + dup2(): Shell 파이프 구현
+~~~
+read(0, buffer, size);
+~~~
 
-### 단순 파이프: ls | grep
+여기서 `0`은 **stdin**을 의미합니다.
 
-```c
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
+Shell은 이 stdin을 다음과 같이 바꿉니다.
 
-int main() {
-    int pipefd[2];
-    pipe(pipefd);
-    
-    pid_t pid1 = fork();
-    
-    if (pid1 == 0) {
-        // 자식 1: ls
-        close(pipefd[0]);              // 읽기 끝 안 씀
-        dup2(pipefd[1], STDOUT_FILENO); // stdout → pipe
-        close(pipefd[1]);              // 원본 FD 닫기
-        
-        execlp("ls", "ls", NULL);
-        perror("exec ls failed");
-        exit(1);
-    }
-    
-    pid_t pid2 = fork();
-    
-    if (pid2 == 0) {
-        // 자식 2: grep
-        close(pipefd[1]);              // 쓰기 끝 안 씀
-        dup2(pipefd[0], STDIN_FILENO);  // stdin ← pipe
-        close(pipefd[0]);              // 원본 FD 닫기
-        
-        execlp("grep", "grep", ".c", NULL);
-        perror("exec grep failed");
-        exit(1);
-    }
-    
-    // 부모: 파이프 닫고 대기
-    close(pipefd[0]);
-    close(pipefd[1]);
-    
-    waitpid(pid1, NULL, 0);
-    waitpid(pid2, NULL, 0);
-    
-    return 0;
-}
-```
+~~~
+dup2(pipefd[0], 0);
+~~~
 
----
+즉
 
-### 작동 과정 상세 분석
+~~~
+stdin (0) → Pipe read end
+~~~
 
-#### Step 1: Pipe 생성
+이 됩니다.
 
-```
-부모 프로세스:
-FD Table:
-0 → keyboard
-1 → terminal
-2 → terminal
-3 → pipe[read]   ← pipefd[0]
-4 → pipe[write]  ← pipefd[1]
-```
+구조를 보면 다음과 같습니다.
 
-#### Step 2: fork() #1 (ls)
+~~~
+Pipe write end
+        │
+        ▼
+     [ PIPE ]
+        │
+        ▼
+Pipe read end
+        │
+        ▼
+stdin (0) → grep
+~~~
 
-```
-ls 프로세스 (자식):
-FD Table:
-0 → keyboard
-1 → terminal
-2 → terminal
-3 → pipe[read]   ← 복사됨!
-4 → pipe[write]  ← 복사됨!
+결과적으로 전체 연결은 다음과 같습니다.
 
-close(pipefd[0]):  FD 3 닫기
-```
+~~~
+ls stdout (1)
+      │
+      ▼
+   pipe write
+      │
+   [ PIPE ]
+      │
+   pipe read
+      ▼
+grep stdin (0)
+~~~
 
-#### Step 3: dup2(pipefd[1], 1)
-
-```
-ls 프로세스:
-FD Table:
-0 → keyboard
-1 → pipe[write]  ← stdout이 파이프로!
-2 → terminal
-4 → pipe[write]
-
-close(pipefd[1]):  FD 4 닫기
-```
-
-#### Step 4: exec("ls")
-
-```
-ls 출력 → stdout (FD 1) → pipe[write]
-```
-
-#### Step 5: fork() #2 (grep)
-
-```
-grep 프로세스:
-FD Table:
-0 → keyboard
-1 → terminal
-2 → terminal
-3 → pipe[read]
-4 → pipe[write]
-
-close(pipefd[1]):  FD 4 닫기
-```
-
-#### Step 6: dup2(pipefd[0], 0)
-
-```
-grep 프로세스:
-FD Table:
-0 → pipe[read]  ← stdin이 파이프로!
-1 → terminal
-2 → terminal
-3 → pipe[read]
-
-close(pipefd[0]):  FD 3 닫기
-```
-
-#### Step 7: exec("grep")
-
-```
-grep 입력 ← stdin (FD 0) ← pipe[read]
-grep 출력 → stdout (FD 1) → terminal
-```
-
----
-
-### 데이터 흐름
-
-```
-ls → stdout(FD 1) 
-   → pipe[write] 
-   → [Kernel Buffer] 
-   → pipe[read] 
-   → stdin(FD 0) 
-   → grep 
-   → stdout(FD 1) 
-   → terminal
-```
-
----
-
-## 다단계 Pipe: ls | grep | wc
-
-### 3단계 파이프 구현
-
-```c
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/wait.h>
-
-int main() {
-    int pipe1[2], pipe2[2];
-    
-    // 파이프 2개 생성
-    pipe(pipe1);  // ls → grep
-    pipe(pipe2);  // grep → wc
-    
-    // === ls 프로세스 ===
-    if (fork() == 0) {
-        // stdout → pipe1[write]
-        dup2(pipe1[1], STDOUT_FILENO);
-        
-        // 모든 파이프 닫기
-        close(pipe1[0]);
-        close(pipe1[1]);
-        close(pipe2[0]);
-        close(pipe2[1]);
-        
-        execlp("ls", "ls", NULL);
-        exit(1);
-    }
-    
-    // === grep 프로세스 ===
-    if (fork() == 0) {
-        // stdin ← pipe1[read]
-        dup2(pipe1[0], STDIN_FILENO);
-        // stdout → pipe2[write]
-        dup2(pipe2[1], STDOUT_FILENO);
-        
-        // 모든 파이프 닫기
-        close(pipe1[0]);
-        close(pipe1[1]);
-        close(pipe2[0]);
-        close(pipe2[1]);
-        
-        execlp("grep", "grep", ".c", NULL);
-        exit(1);
-    }
-    
-    // === wc 프로세스 ===
-    if (fork() == 0) {
-        // stdin ← pipe2[read]
-        dup2(pipe2[0], STDIN_FILENO);
-        
-        // 모든 파이프 닫기
-        close(pipe1[0]);
-        close(pipe1[1]);
-        close(pipe2[0]);
-        close(pipe2[1]);
-        
-        execlp("wc", "wc", "-l", NULL);
-        exit(1);
-    }
-    
-    // === 부모 프로세스 ===
-    // 모든 파이프 닫기 (중요!)
-    close(pipe1[0]);
-    close(pipe1[1]);
-    close(pipe2[0]);
-    close(pipe2[1]);
-    
-    // 자식들 대기
-    wait(NULL);
-    wait(NULL);
-    wait(NULL);
-    
-    return 0;
-}
-```
-
----
-
-### 파이프 닫기의 중요성
-
-**왜 모든 파이프를 닫아야 하나?**
-
-```c
-// 잘못된 예
-if (fork() == 0) {
-    dup2(pipefd[0], STDIN_FILENO);
-    // pipefd[0], pipefd[1] 안 닫음!
-    exec("grep");
-}
-```
-
-**문제**:
-```
-grep이 실행되어도:
-- grep의 FD 테이블에 pipe[write] 남아있음
-- pipe[write]가 완전히 닫히지 않음
-- grep이 read() → 영원히 대기 (Blocking!)
-```
-
-**해결**:
-```c
-close(pipefd[0]);  // 사용 후 반드시!
-close(pipefd[1]);
-```
-
----
-
-## nsh 파이프 구현
-
-### 파이프 파싱
-
-```c
-// "ls | grep .c | wc -l" 파싱
-typedef struct {
-    char **args;      // 명령어 인자
-} Command;
-
-typedef struct {
-    Command *commands;
-    int count;        // 파이프 개수
-} Pipeline;
-
-Pipeline parse_pipeline(char *input) {
-    Pipeline pipeline;
-    pipeline.count = 0;
-    
-    char *token = strtok(input, "|");
-    while (token != NULL) {
-        Command cmd;
-        cmd.args = parse_args(token);  // 공백 기준 파싱
-        pipeline.commands[pipeline.count++] = cmd;
-        token = strtok(NULL, "|");
-    }
-    
-    return pipeline;
-}
-```
-
----
-
-### 파이프 실행 엔진
-
-```c
-void execute_pipeline(Pipeline *pipeline) {
-    int num_cmds = pipeline->count;
-    int pipes[num_cmds - 1][2];  // n개 명령 → n-1개 파이프
-    
-    // 1. 모든 파이프 생성
-    for (int i = 0; i < num_cmds - 1; i++) {
-        if (pipe(pipes[i]) == -1) {
-            perror("pipe failed");
-            return;
-        }
-    }
-    
-    // 2. 각 명령 실행
-    for (int i = 0; i < num_cmds; i++) {
-        pid_t pid = fork();
-        
-        if (pid == 0) {
-            // 자식 프로세스
-            
-            // stdin 리다이렉션 (첫 번째 명령 제외)
-            if (i > 0) {
-                dup2(pipes[i-1][0], STDIN_FILENO);
-            }
-            
-            // stdout 리다이렉션 (마지막 명령 제외)
-            if (i < num_cmds - 1) {
-                dup2(pipes[i][1], STDOUT_FILENO);
-            }
-            
-            // 모든 파이프 FD 닫기
-            for (int j = 0; j < num_cmds - 1; j++) {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
-            }
-            
-            // 명령 실행
-            execvp(pipeline->commands[i].args[0], 
-                   pipeline->commands[i].args);
-            
-            perror("exec failed");
-            exit(EXIT_FAILURE);
-        }
-    }
-    
-    // 3. 부모: 모든 파이프 닫기
-    for (int i = 0; i < num_cmds - 1; i++) {
-        close(pipes[i][0]);
-        close(pipes[i][1]);
-    }
-    
-    // 4. 모든 자식 대기
-    for (int i = 0; i < num_cmds; i++) {
-        wait(NULL);
-    }
-}
-```
-
----
-
-### 에러 처리
-
-```c
-void execute_pipeline_safe(Pipeline *pipeline) {
-    // ... (위와 동일)
-    
-    for (int i = 0; i < num_cmds; i++) {
-        pid_t pid = fork();
-        
-        if (pid < 0) {
-            perror("fork failed");
-            // 이미 생성된 파이프 정리
-            for (int j = 0; j < num_cmds - 1; j++) {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
-            }
-            return;
-        }
-        
-        if (pid == 0) {
-            // dup2 에러 체크
-            if (i > 0) {
-                if (dup2(pipes[i-1][0], STDIN_FILENO) == -1) {
-                    perror("dup2 stdin");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            
-            if (i < num_cmds - 1) {
-                if (dup2(pipes[i][1], STDOUT_FILENO) == -1) {
-                    perror("dup2 stdout");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            
-            // exec 실패 시 명확한 에러
-            execvp(pipeline->commands[i].args[0], 
-                   pipeline->commands[i].args);
-            
-            fprintf(stderr, "nsh: %s: command not found\n", 
-                    pipeline->commands[i].args[0]);
-            exit(127);
-        }
-    }
-    
-    // ... (나머지 동일)
-}
-```
-
----
-
-## Signal: 프로세스 제어
-
-### Signal이란?
-
-**정의**: 프로세스에게 보내는 **소프트웨어 인터럽트**
-
-**예시**:
-```bash
-$ sleep 100
-^C  ← Ctrl+C → SIGINT 전송 → 프로세스 종료
-```
-
----
-
-### 주요 Signal
-
-| Signal | 번호 | 의미 | 기본 동작 |
-|--------|------|------|----------|
-| **SIGINT** | 2 | Interrupt (Ctrl+C) | 종료 |
-| **SIGQUIT** | 3 | Quit (Ctrl+\\) | 종료 + Core dump |
-| **SIGKILL** | 9 | Kill (강제 종료) | 종료 (무시 불가) |
-| **SIGTERM** | 15 | Terminate (정상 종료) | 종료 |
-| **SIGCHLD** | 17 | 자식 종료 알림 | 무시 |
-| **SIGPIPE** | 13 | Broken pipe | 종료 |
-| **SIGTSTP** | 20 | Stop (Ctrl+Z) | 일시 정지 |
-| **SIGCONT** | 18 | Continue | 재개 |
-
----
-
-### Signal 전송
-
-```c
-#include <signal.h>
-
-// 특정 프로세스에게
-kill(pid, SIGTERM);
-
-// 자신에게
-raise(SIGTERM);
-
-// 프로세스 그룹에게
-kill(-pgid, SIGTERM);
-```
-
-**Shell에서**:
-```bash
-$ kill 1234       # SIGTERM (15) 전송
-$ kill -9 1234    # SIGKILL (9) 전송
-$ kill -INT 1234  # SIGINT (2) 전송
-```
-
----
-
-### Signal Handler 등록
-
-```c
-#include <signal.h>
-
-void sigint_handler(int signo) {
-    printf("\nCaught SIGINT (Ctrl+C)!\n");
-    printf("Press Ctrl+C again to exit.\n");
-    
-    // 기본 핸들러로 복구
-    signal(SIGINT, SIG_DFL);
-}
-
-int main() {
-    // SIGINT 핸들러 등록
-    signal(SIGINT, sigint_handler);
-    
-    printf("Try pressing Ctrl+C...\n");
-    
-    while (1) {
-        sleep(1);
-    }
-    
-    return 0;
-}
-```
-
-**실행**:
-```bash
-$ ./program
-Try pressing Ctrl+C...
-^C
-Caught SIGINT (Ctrl+C)!
-Press Ctrl+C again to exit.
-^C
-$
-```
-
----
-
-### sigaction(): 더 안전한 방법
-
-```c
-#include <signal.h>
-
-void sigint_handler(int signo) {
-    write(STDOUT_FILENO, "\nCaught SIGINT\n", 15);
-    // printf는 signal-safe 아님!
-}
-
-int main() {
-    struct sigaction sa;
-    sa.sa_handler = sigint_handler;
-    sigemptyset(&sa.sa_mask);    // 다른 시그널 블록 안 함
-    sa.sa_flags = SA_RESTART;    // Interrupted syscall 재시작
-    
-    sigaction(SIGINT, &sa, NULL);
-    
-    // ...
-}
-```
-
----
-
-### Shell에서 Ctrl+C 처리
-
-```c
-// nsh에서 Ctrl+C 처리
-void setup_signals() {
-    struct sigaction sa;
-    
-    // SIGINT는 자식에게만
-    sa.sa_handler = SIG_IGN;  // Shell은 무시
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, NULL);
-    
-    // SIGCHLD는 zombie 방지
-    sa.sa_handler = sigchld_handler;
-    sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-    sigaction(SIGCHLD, &sa, NULL);
-}
-
-void execute_command(char **args) {
-    pid_t pid = fork();
-    
-    if (pid == 0) {
-        // 자식: Signal 기본값으로
-        signal(SIGINT, SIG_DFL);
-        signal(SIGQUIT, SIG_DFL);
-        
-        execvp(args[0], args);
-        exit(1);
-    }
-    
-    // 부모: 대기
-    waitpid(pid, NULL, 0);
-}
-```
-
-**동작**:
-```bash
-nsh$ sleep 10
-^C  ← SIGINT → sleep 종료
-nsh$ ← Shell은 계속 실행
-```
-
----
-
-### SIGPIPE 처리
-
-**문제**:
-```bash
-$ yes | head -1
-y
-(yes 프로세스가 SIGPIPE로 종료됨)
-```
-
-**원인**:
-```
-yes → 무한 출력
-head -1 → 1줄만 읽고 pipe 닫음
-yes → pipe에 쓰기 시도 → SIGPIPE!
-```
-
-**해결**:
-```c
-// Option 1: SIGPIPE 무시
-signal(SIGPIPE, SIG_IGN);
-
-// Option 2: EPIPE 에러 처리
-ssize_t n = write(pipefd[1], data, size);
-if (n == -1 && errno == EPIPE) {
-    // Pipe 닫힘, 정상 종료
-    exit(0);
-}
-```
-
----
-
-## 실전 디버깅
-
-### 1. strace로 파이프 추적
-
-```bash
-$ strace -f -e pipe,dup2,fork,exec sh -c "ls | grep .c"
-
-pipe([3, 4])                            = 0
-fork()                                  = 1234
-[pid 1234] dup2(4, 1)                  = 1
-[pid 1234] close(3)                    = 0
-[pid 1234] close(4)                    = 0
-[pid 1234] execve("/bin/ls", ["ls"], ...) = 0
-
-fork()                                  = 1235
-[pid 1235] dup2(3, 0)                  = 0
-[pid 1235] close(3)                    = 0
-[pid 1235] close(4)                    = 0
-[pid 1235] execve("/bin/grep", ["grep", ".c"], ...) = 0
-```
-
----
-
-### 2. lsof로 열린 FD 확인
-
-```bash
-$ lsof -p 1234
-COMMAND  PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
-ls      1234 user  cwd    DIR  253,0     4096 1234 /home/user
-ls      1234 user  rtd    DIR  253,0     4096    2 /
-ls      1234 user  txt    REG  253,0   138K   5678 /bin/ls
-ls      1234 user  mem    REG  253,0   2.1M   9012 /lib/libc.so.6
-ls      1234 user    0u   CHR  136,0      0t0    3 /dev/pts/0
-ls      1234 user    1w  FIFO    0,8      0t0  123 pipe
-ls      1234 user    2u   CHR  136,0      0t0    3 /dev/pts/0
-```
-
-**해석**:
-- FD 0: stdin (CHR - character device)
-- FD 1: stdout (FIFO - pipe!)
-- FD 2: stderr (CHR)
-
----
-
-### 3. /proc/PID/fd 직접 확인
-
-```bash
-$ ls -l /proc/1234/fd
-lrwx------ 1 user user 64 ... 0 -> /dev/pts/0
-l-wx------ 1 user user 64 ... 1 -> pipe:[12345]
-lrwx------ 1 user user 64 ... 2 -> /dev/pts/0
-```
-
----
-
-### 4. 파이프 버퍼 크기 확인
-
-```bash
-$ cat /proc/sys/fs/pipe-max-size
-1048576  # 1MB (Linux 기본값)
-
-$ ulimit -p
-8  # 파이프 버퍼 크기 (블록 단위, 512바이트)
-```
-
----
-
-## 고급 주제
-
-### 1. Non-blocking Pipe
-
-```c
-#include <fcntl.h>
-
-int pipefd[2];
-pipe(pipefd);
-
-// Non-blocking 모드 설정
-int flags = fcntl(pipefd[0], F_GETFL);
-fcntl(pipefd[0], F_SETFL, flags | O_NONBLOCK);
-
-// read()가 즉시 리턴
-ssize_t n = read(pipefd[0], buffer, size);
-if (n == -1 && errno == EAGAIN) {
-    printf("No data available yet\n");
-}
-```
-
----
-
-### 2. pipe() 크기 조정
-
-```c
-// Linux 2.6.35+
-#include <fcntl.h>
-
-int pipefd[2];
-pipe(pipefd);
-
-// 파이프 크기 설정 (2MB)
-fcntl(pipefd[1], F_SETPIPE_SZ, 2 * 1024 * 1024);
-
-// 현재 크기 확인
-int size = fcntl(pipefd[0], F_GETPIPE_SZ);
-printf("Pipe size: %d bytes\n", size);
-```
-
----
-
-### 3. splice(): Zero-copy 파이프
-
-```c
-// Linux 전용
-#include <fcntl.h>
-
-// 파일 → 파이프 (zero-copy!)
-ssize_t n = splice(file_fd, NULL, pipefd[1], NULL, 
-                   size, SPLICE_F_MOVE);
-
-// 파이프 → 소켓 (zero-copy!)
-splice(pipefd[0], NULL, socket_fd, NULL, 
-       size, SPLICE_F_MOVE);
-```
-
-**장점**: 
-- 유저 공간으로 복사 안 함
-- 커널 버퍼에서 직접 전송
-- 성능 향상 (Nginx, Apache 등 사용)
-
----
-
-## Named Pipe (FIFO)
-
-### FIFO 생성
-
-```bash
-$ mkfifo mypipe
-$ ls -l mypipe
-prw-r--r-- 1 user user 0 ... mypipe
-           ↑ p = pipe!
-```
-
-**C에서**:
-```c
-#include <sys/stat.h>
-
-mkfifo("/tmp/mypipe", 0666);
-```
-
----
-
-### FIFO 사용
-
-**Writer**:
-```c
-int fd = open("/tmp/mypipe", O_WRONLY);
-write(fd, "Hello", 6);
-close(fd);
-```
-
-**Reader**:
-```c
-int fd = open("/tmp/mypipe", O_RDONLY);
-char buffer[100];
-read(fd, buffer, sizeof(buffer));
-printf("Received: %s\n", buffer);
-close(fd);
-```
-
-**특징**:
-- 무관한 프로세스끼리 통신 가능!
-- 파일시스템에 존재
-- 하지만 데이터는 메모리에만
-
----
-
-## 실전 팁
-
-### 1. Pipe 버퍼 Full 주의
-
-```c
-// 문제: Deadlock!
-int pipefd[2];
-pipe(pipefd);
-
-// 64KB 이상 쓰면?
-char big_data[100 * 1024];  // 100KB
-write(pipefd[1], big_data, sizeof(big_data));
-// → Blocking! (버퍼 가득 참)
-
-// 해결: fork() 후 읽기/쓰기 분리
-```
-
----
-
-### 2. 모든 Write End 닫기
-
-```c
-// Deadlock 예방
-pipe(pipefd);
-
-if (fork() == 0) {
-    close(pipefd[1]);  // 자식이 쓰기 안 하면 닫기!
-    
-    char buffer[100];
-    read(pipefd[0], buffer, sizeof(buffer));
-    // → 부모가 close(pipefd[1]) 하면 EOF
-}
-```
-
----
-
-### 3. Signal-Safe 함수만 사용
-
-**Handler 안에서**:
-```c
-void handler(int signo) {
-    // ✓ OK
-    write(STDOUT_FILENO, "msg", 3);
-    
-    // ✗ NOT OK (signal-unsafe!)
-    printf("msg");
-    malloc(100);
-    free(ptr);
-}
-```
-
-**Signal-Safe 함수 목록**: `man 7 signal-safety`
-
----
-
-### 4. Zombie 방지
-
-```c
-// SIGCHLD 핸들러
-void sigchld_handler(int signo) {
-    // 모든 종료된 자식 수거
-    while (waitpid(-1, NULL, WNOHANG) > 0)
-        ;
-}
-
-// 등록
-struct sigaction sa;
-sa.sa_handler = sigchld_handler;
-sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
-sigemptyset(&sa.sa_mask);
-sigaction(SIGCHLD, &sa, NULL);
-```
-
----
-
-## 성능 고려사항
-
-### Pipe vs Shared Memory
-
-```c
-// Pipe (작은 데이터)
-for (int i = 0; i < 1000; i++) {
-    write(pipefd[1], &data, sizeof(data));
-}
-// → Context switch 많음
-// → 작은 메시지에 적합
-
-// Shared Memory (큰 데이터)
-void *shm = mmap(NULL, size, PROT_READ|PROT_WRITE,
-                 MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-// → Zero-copy
-// → 큰 데이터 전송에 적합
-```
-
-**Benchmark**:
-```
-메시지 크기 | Pipe      | Shared Memory
-1 byte      | 5 µs      | 3 µs
-1 KB        | 8 µs      | 3 µs
-1 MB        | 5 ms      | 0.1 ms
-```
+이제 `ls`가 출력한 데이터는 **Pipe를 통해 바로 `grep`으로 전달**됩니다.
 
 ---
 
 ## 정리
 
-### 핵심 개념
+Shell은 파이프라인을 만들기 위해 다음 작업을 수행합니다.
 
-**1. File Descriptor**
-```
-✓ 0 (stdin), 1 (stdout), 2 (stderr)
-✓ Lowest available FD 할당
-✓ 프로세스마다 독립적
-```
+~~~
+1. pipe() 생성
+2. fork() 로 프로세스 생성
+3. dup2() 로 입출력 재연결
+4. exec() 로 프로그램 실행
+~~~
 
-**2. pipe()**
-```
-✓ 단방향 통신
-✓ pipefd[0] (read), pipefd[1] (write)
-✓ fork()와 함께 사용
-```
+즉 `ls | grep .c` 명령은 내부적으로 다음과 같은 구조로 실행됩니다.
 
-**3. dup2()**
-```
-✓ FD 복제 및 리다이렉션
-✓ dup2(oldfd, newfd)
-✓ stdout/stdin 교체
-```
-
-**4. Signal**
-```
-✓ 프로세스 간 이벤트 알림
-✓ SIGINT (Ctrl+C), SIGPIPE, SIGCHLD
-✓ signal() 또는 sigaction()
-```
+~~~
+ls (stdout)
+    │
+    ▼
+ [ Pipe ]
+    ▲
+    │
+grep (stdin)
+~~~
 
 ---
 
-### Shell 파이프 패턴
+## File Descriptor 변화 과정
 
-```c
-// cmd1 | cmd2
+`ls | grep .c` 실행 중 각 프로세스의 File Descriptor 테이블은 단계적으로 변화합니다.
+
+Shell이 내부적으로 수행하는 작업을 순서대로 보면 다음과 같습니다.
+
+---
+
+### Step 1: pipe() 생성
+
+먼저 Shell은 파이프를 생성합니다.
+
+~~~
+int pipefd[2];
+pipe(pipefd);
+~~~
+
+이때 두 개의 File Descriptor가 만들어집니다.
+
+- `pipefd[0]` : 읽기 끝 (read end)
+- `pipefd[1]` : 쓰기 끝 (write end)
+
+부모 프로세스의 FD 테이블은 다음과 같습니다.
+
+~~~
+FD Table (Shell)
+
+0 → keyboard
+1 → terminal
+2 → terminal
+3 → pipe read
+4 → pipe write
+~~~
+
+---
+
+### Step 2: ls 프로세스 생성
+
+이제 Shell은 첫 번째 명령어를 실행하기 위해 `fork()`를 호출합니다.
+
+~~~
+pid = fork();
+~~~
+
+`fork()`가 호출되면 자식 프로세스는 **부모의 File Descriptor 테이블을 그대로 복사**합니다.
+
+~~~
+FD Table (ls process)
+
+0 → keyboard
+1 → terminal
+2 → terminal
+3 → pipe read
+4 → pipe write
+~~~
+
+하지만 아직까지는 `ls`의 출력이 터미널로 향합니다.
+
+---
+
+### Step 3: stdout을 Pipe로 연결
+
+이제 Shell은 `dup2()`를 이용하여 `stdout`을 파이프의 write end로 재연결합니다.
+
+~~~
+dup2(pipefd[1], STDOUT_FILENO);
+~~~
+
+이 호출 이후 FD 테이블은 다음처럼 변합니다.
+
+~~~
+FD Table (ls process)
+
+0 → keyboard
+1 → pipe write
+2 → terminal
+~~~
+
+이제 `ls`가 출력하는 모든 데이터는
+
+~~~
+stdout → pipe
+~~~
+
+로 전달됩니다.
+
+`ls` 프로그램은 여전히 단순히
+
+~~~
+write(1, ...)
+~~~
+
+를 호출할 뿐입니다.
+
+하지만 **FD 1이 Pipe에 연결되어 있기 때문에 출력이 Pipe로 흘러가게 됩니다.**
+
+---
+
+### Step 4: grep 프로세스 생성
+
+이제 Shell은 두 번째 명령어를 실행합니다.
+
+~~~
+pid = fork();
+~~~
+
+그리고 `grep`의 `stdin`을 파이프의 read end에 연결합니다.
+
+~~~
+dup2(pipefd[0], STDIN_FILENO);
+~~~
+
+이후 `grep`의 FD 테이블은 다음과 같습니다.
+
+~~~
+FD Table (grep process)
+
+0 → pipe read
+1 → terminal
+2 → terminal
+~~~
+
+즉 데이터 흐름은 다음과 같습니다.
+
+~~~
+ls stdout → pipe → grep stdin
+~~~
+
+---
+
+## Pipe 사용 시 주의할 점
+
+### 왜 Pipe의 양쪽 끝을 닫아야 할까?
+
+파이프를 사용할 때 매우 중요한 규칙이 있습니다.
+
+**사용하지 않는 Pipe 끝은 반드시 닫아야 합니다.**
+
+예를 들어 `ls` 프로세스는 읽기 끝을 사용할 필요가 없습니다.
+
+따라서 다음과 같이 닫아야 합니다.
+
+~~~
+close(pipefd[0]);
+~~~
+
+마찬가지로 `grep`은 write end를 사용하지 않습니다.
+
+~~~
+close(pipefd[1]);
+~~~
+
+이 작업을 하지 않으면 문제가 발생할 수 있습니다.
+
+#### Blocking 문제
+
+파이프는 **모든 write end가 닫혀야 EOF를 전달합니다.**
+
+만약 write end가 열려 있다면 `grep`은 계속 데이터를 기다리게 됩니다.
+
+즉 프로그램이 **끝나지 않고 block 상태에 들어갈 수 있습니다.**
+
+그래서 Shell은 항상
+
+- 사용하지 않는 read end
+- 사용하지 않는 write end
+
+를 **명확하게 닫습니다.**
+
+
+
+### Broken Pipe와 SIGPIPE
+
+Pipe에서 **읽는 쪽 프로세스가 먼저 종료되면**  
+쓰는 프로세스는 `SIGPIPE` 시그널을 받게 됩니다.
+
+예를 들어 다음 명령을 보겠습니다.
+
+~~~
+yes | head -1
+~~~
+
+- yes → 무한히 문자열 출력
+- head → 한 줄 읽고 즉시 종료
+
+이 경우 `head`가 먼저 종료되면서 Pipe의 read end가 닫히게 됩니다.
+
+그 이후 `yes`가 Pipe에 데이터를 쓰려고 하면  
+커널은 `SIGPIPE`를 보내고 `yes` 프로세스는 종료됩니다.
+
+이 현상은 **Broken Pipe**라고 불립니다.
+
+---
+
+## Shell이 `ls | grep .c` 파이프라인을 만드는 과정
+
+이제 모든 개념이 준비되었습니다.
+
+- `pipe()` : 프로세스 간 데이터 통로 생성
+- `fork()` : 새로운 프로세스 생성
+- `dup2()` : 표준 입출력 재연결
+- `exec()` : 프로그램 실행
+
+Shell은 이 네 가지 시스템 콜을 조합하여  
+`ls | grep .c` 파이프라인을 생성합니다.
+
+전체 구조는 다음과 같습니다.
+
+~~~
+        pipe()
+          │
+          ▼
+     ┌───────────┐
+     │   PIPE    │
+     └───────────┘
+       ▲       ▲
+       │       │
+   read end  write end
+~~~
+
+이 Pipe를 기준으로 **두 개의 프로세스가 생성됩니다.**
+
+~~~
+        ls (stdout)
+            │
+            ▼
+        write end
+           PIPE
+        read end
+            ▼
+        grep (stdin)
+~~~
+
+즉 데이터 흐름은 다음과 같습니다.
+
+~~~
+ls → PIPE → grep
+~~~
+
+---
+
+## Shell 내부 동작 순서
+
+Shell은 실제로 다음 순서로 작업을 수행합니다.
+
+~~~
+1. pipe() 생성
+2. fork() → 첫 번째 자식 프로세스 (ls)
+3. fork() → 두 번째 자식 프로세스 (grep)
+4. dup2()로 입출력 재연결
+5. exec()로 프로그램 실행
+~~~
+
+이를 코드 형태로 단순화하면 다음과 같습니다.
+
+~~~
+int pipefd[2];
 pipe(pipefd);
 
-// cmd1
-fork();
-dup2(pipefd[1], STDOUT);
-close(pipefd[0]);
-close(pipefd[1]);
-exec("cmd1");
+pid_t pid1 = fork();
 
-// cmd2
-fork();
-dup2(pipefd[0], STDIN);
-close(pipefd[0]);
-close(pipefd[1]);
-exec("cmd2");
+if (pid1 == 0) {
+    dup2(pipefd[1], STDOUT_FILENO);
+    close(pipefd[0]);
+    execlp("ls", "ls", NULL);
+}
 
-// 부모
+pid_t pid2 = fork();
+
+if (pid2 == 0) {
+    dup2(pipefd[0], STDIN_FILENO);
+    close(pipefd[1]);
+    execlp("grep", "grep", ".c", NULL);
+}
+
 close(pipefd[0]);
 close(pipefd[1]);
-wait(); wait();
-```
+
+wait(NULL);
+wait(NULL);
+~~~
+
+이 코드가 바로 Shell이 파이프라인을 만드는 **핵심 구조**입니다.
 
 ---
 
-### 다음 편 예고
+## 전체 실행 흐름
 
-**Part 3: Virtual Memory**  
-"4GB RAM으로 16GB 쓰는 마법"
+이 과정을 그림으로 정리하면 다음과 같습니다.
 
-```c
-// 다음 편에서 다룰 내용
-void *ptr = malloc(1024 * 1024 * 1024);  // 1GB 할당
-// → 실제 메모리는 안 쓰임! (Lazy allocation)
+~~~
+Shell
+ │
+ │ pipe()
+ ▼
+Pipe 생성
+ │
+ ├─ fork() → Child 1 (ls)
+ │              │
+ │              ├─ dup2(pipe write → stdout)
+ │              └─ exec("ls")
+ │
+ └─ fork() → Child 2 (grep)
+                │
+                ├─ dup2(pipe read → stdin)
+                └─ exec("grep .c")
+~~~
 
-ptr[0] = 42;  // 이 순간 Page Fault!
-// → 이제서야 물리 메모리 할당
+이제 두 프로그램은 동시에 실행됩니다.
 
-fork();  // Copy-on-Write
-// → 메모리 복사 안 함, 공유!
-```
+그리고 데이터는 다음과 같이 흐릅니다.
 
-**다룰 주제**:
-- Virtual Memory 구조
-- Page Table (4-level paging)
-- Page Fault 처리
-- Copy-on-Write 심화
-- Memory-Mapped I/O
-- OOM Killer
+~~~
+ls stdout
+   │
+   ▼
+[ PIPE ]
+   │
+   ▼
+grep stdin
+~~~
+
+즉 `ls`가 출력하는 데이터가 **실시간으로 `grep`에게 전달**됩니다.
+
+---
+
+## 우리가 사용한 시스템 콜
+
+`ls | grep .c` 명령 하나에는 다음과 같은 시스템 콜이 사용됩니다.
+
+~~~
+pipe()
+fork()
+dup2()
+exec()
+wait()
+~~~
+
+이 다섯 가지 시스템 콜이 함께 동작하면서  
+Linux의 **파이프라인 메커니즘**이 만들어집니다.
+
+---
+
+## 마무리
+
+우리가 단순히 입력한 명령
+
+~~~
+ls | grep .c
+~~~
+
+은 실제로는 다음과 같은 복잡한 과정을 거칩니다.
+
+~~~
+pipe()  → 프로세스 간 통로 생성
+fork()  → 두 개의 프로세스 생성
+dup2()  → 표준 입출력 재연결
+exec()  → 프로그램 실행
+wait()  → 프로세스 종료 대기
+~~~
+
+이 모든 과정은 **Shell과 커널이 협력하여 매우 빠르게 수행**됩니다.
+
+그래서 우리는 단순히 파이프(`|`) 하나만 사용했을 뿐이지만  
+실제로는 **운영체제의 IPC 메커니즘 전체가 동작하고 있는 것**입니다.
+
+
+---
+
+## 실제로 확인해보기: strace
+
+지금까지는 개념과 코드 수준에서  
+`ls | grep .c` 파이프라인이 어떻게 동작하는지 살펴보았습니다.
+
+그렇다면 이 과정은 실제로도 확인할 수 있을까요?
+
+Linux에서는 **`strace`** 라는 도구를 사용하면  
+프로그램이 호출하는 **시스템 콜을 그대로 관찰**할 수 있습니다.
+
+다음 명령을 실행해 보겠습니다.
+
+~~~
+strace -f ls | grep .c
+~~~
+
+여기서 `-f` 옵션은 **fork로 생성된 자식 프로세스까지 추적**하라는 의미입니다.
+
+출력 일부를 보면 다음과 같은 시스템 콜들이 등장합니다.
+
+~~~
+pipe([3,4])                    = 0
+fork()                         = 12345
+fork()                         = 12346
+dup2(4, 1)                     = 1
+dup2(3, 0)                     = 0
+execve("/usr/bin/ls", ...)
+execve("/usr/bin/grep", ...)
+~~~
+
+이 출력은 우리가 지금까지 설명한 흐름과 정확히 일치합니다.
+
+~~~
+pipe()
+ → fork()
+ → fork()
+ → dup2()
+ → exec()
+~~~
+
+즉 Shell은 실제로
+
+1. Pipe를 만들고  
+2. 두 개의 프로세스를 생성한 뒤  
+3. 각각의 표준 입출력을 Pipe로 연결하고  
+4. 프로그램을 실행합니다.
+
+
+---
+
+## 데이터 흐름 다시 보기
+
+전체 데이터 흐름을 다시 정리하면 다음과 같습니다.
+
+~~~
+ls stdout
+   │
+   ▼
+[ PIPE ]
+   │
+   ▼
+grep stdin
+~~~
+
+이 구조 덕분에 `ls`가 출력하는 데이터가  
+**실시간으로 `grep`에게 전달**됩니다.
+
+--
+
+## 열린 File Descriptor 확인하기
+
+특정 프로세스가 어떤 File Descriptor를 사용하고 있는지 확인하려면  
+다음 명령을 사용할 수 있습니다.
+
+### lsof 사용
+
+~~~
+lsof -p <PID>
+~~~
+
+### /proc 파일 시스템 확인
+
+Linux에서는 `/proc`에서도 확인할 수 있습니다.
+
+~~~
+ls -l /proc/<PID>/fd
+~~~
+
+예시 출력
+
+~~~
+1 -> pipe:[12345]
+~~~
+
+이 출력은 해당 File Descriptor가 **Pipe에 연결되어 있음**을 의미합니다.
+
+## 열린 File Descriptor 확인하기
+
+특정 프로세스가 어떤 File Descriptor를 사용하고 있는지 확인하려면  
+다음 명령을 사용할 수 있습니다.
+
+### lsof 사용
+
+~~~
+lsof -p <PID>
+~~~
+
+### /proc 파일 시스템 확인
+
+Linux에서는 `/proc`에서도 확인할 수 있습니다.
+
+~~~
+ls -l /proc/<PID>/fd
+~~~
+
+예시 출력
+
+~~~
+1 -> pipe:[12345]
+~~~
+
+이 출력은 해당 File Descriptor가 **Pipe에 연결되어 있음**을 의미합니다.
+
+
+---
+
+## nsh 파이프 구현
+
+nsh에서는 파이프를 다음과 같은 핵심 단계로 처리합니다.
+
+1. 입력 명령을 `|` 기준으로 파이프라인으로 분리
+2. 각 명령마다 `fork()` 생성
+3. `dup2()`로 stdin/stdout을 파이프에 연결
+4. 사용하지 않는 파이프 FD는 모두 `close()`
+5. `execvp()`로 명령 실행
+
+**핵심 코드 구조 예시**
+
+~~~
+int pipes[N-1][2];
+pipe(pipes[i]);
+pid_t pid = fork();
+if (pid == 0) {
+    dup2(...);  // stdin/stdout 연결
+    close(...); // 사용 안 하는 파이프 닫기
+    execvp(...);
+}
+~~~
+
+전체 구현과 예외 처리 등은 GitHub에서 확인 가능합니다:  
+[https://github.com/nahyun27/linux-minishell](https://github.com/nahyun27/linux-minishell)
+
+---
+
+## 정리
+
+이번 글에서는 다음과 같은 Linux의 핵심 메커니즘을 살펴보았습니다.
+
+- **Pipe** : 프로세스 간 데이터 전달
+- **File Descriptor** : Linux 입출력 추상화
+- **dup2()** : 표준 입출력 재연결
+- **fork()** : 프로세스 생성
+- **exec()** : 프로그램 실행
+
+이 모든 요소가 결합되어 **Shell의 파이프라인 기능**이 만들어집니다.
+
+---
+
+## 다음 글
+
+이번 들에서는 **프로세스 간 데이터 전달(IPC)** 을 다뤘습니다.  
+하지만 Pipe는 다음과 같은 한계를 가지고 있습니다.
+
+- 데이터가 **커널 버퍼를 거쳐야 한다**
+- 복사 비용이 발생한다
+- 단방향 통신이다
+
+다음 글에서는 이러한 한계를 해결하는 **더 강력한 IPC 메커니즘**을 살펴봅니다.
+
+다음 주제:
+
+> 운영체제 Deep Dive #3  
+> Shared Memory는 왜 Pipe보다 빠를까?
+
+- `shm_open`
+- `mmap`
+- Zero-copy IPC
+- Pipe vs Shared Memory 성능 차이
+
+운영체제가 제공하는 **가장 빠른 IPC 방식**을 함께 분석해보겠습니다.
 
 ---
 
 ## 더 알아보기
 
 ### 추천 자료
-
-**책**:
-- "The Linux Programming Interface" (Ch. 44: Pipes and FIFOs)
-- "Advanced Programming in the UNIX Environment" (Ch. 15: IPC)
-
-**온라인**:
 - [man 7 pipe](https://man7.org/linux/man-pages/man7/pipe.7.html)
 - [man 2 dup2](https://man7.org/linux/man-pages/man2/dup2.2.html)
 - [man 7 signal](https://man7.org/linux/man-pages/man7/signal.7.html)
 
 **실습**:
-- [nsh (my shell)](https://github.com/...) - 직접 구현한 Shell!
+- [nsh (Unix minishell)](https://github.com/nahyun27/linux-minishell) - 직접 구현한 Shell!
 
 ---
 
