@@ -159,20 +159,20 @@ Process B
 
 Pipe를 만들기 위해 Linux에서는 다음 시스템 콜을 사용합니다.
 
-```c
+```bash
 int pipe(int fd[2]);
 ```
 
 이 함수는 **두 개의 파일 디스크립터**를 반환합니다.
 
-```c
+```bash
 fd[0] → 읽기(Read End)
 fd[1] → 쓰기(Write End)
 ```
 
 구조를 그림으로 보면 다음과 같습니다.
 
-```c
+```bash
 Process
  │
  │ pipe(fd)
@@ -346,7 +346,7 @@ dup2(pipefd[1], 1);
 
 이 코드는 다음과 같은 의미입니다.
 
-```c
+```
 stdout(1) → pipefd[1]
 ```
 
@@ -753,7 +753,7 @@ wait(NULL);
 
 이 과정을 그림으로 정리하면 다음과 같습니다.
 
-```c
+```bash
 Shell
  │
  │ pipe()
@@ -816,7 +816,7 @@ ls | grep .c
 
 은 실제로는 다음과 같은 복잡한 과정을 거칩니다.
 
-```c
+```bash
 pipe()  → 프로세스 간 통로 생성
 fork()  → 두 개의 프로세스 생성
 dup2()  → 표준 입출력 재연결
@@ -866,7 +866,7 @@ execve("/usr/bin/grep", ...)
 
 이 출력은 우리가 지금까지 설명한 흐름과 정확히 일치합니다.
 
-```c
+```bash
 pipe()
  → fork()
  → fork()
