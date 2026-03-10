@@ -9,6 +9,7 @@ image:
   path: /assets/img/os/pipe-ipc.png
   alt: Inter-Process Communication with Pipes
 math: false
+mermaid: true
 series: 운영체제 Deep Dive
 ---
 

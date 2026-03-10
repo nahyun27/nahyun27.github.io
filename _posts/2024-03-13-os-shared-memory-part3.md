@@ -8,6 +8,7 @@ image:
   path: /assets/img/os/shared-memory.png
   alt: Shared Memory IPC
 math: false
+mermaid: true
 series: 운영체제 Deep Dive
 ---
 
@@ -28,12 +29,18 @@ series: 운영체제 Deep Dive
 Shared Memory는 말 그대로 **여러 프로세스가 같은 물리 메모리 영역을 공유**하는 방식이에요.  
 즉, 한 프로세스가 메모리에 쓴 데이터가 **즉시 다른 프로세스에서도 보인다**는 뜻이죠.  
 
-```bash 
+<!-- ```bash 
 Process A                      Process B
 VA: 0x1000                     VA: 0x5000
    ↓                               ↓
    └──→ Physical Memory: 0xABCD ←──┘
          (Same location!)
+``` -->
+
+```mermaid
+graph TD
+    A[Process A<br/>VA: 0x1000] -->|매핑| C[Physical Memory<br/>0xABCD]
+    B[Process B<br/>VA: 0x5000] -->|매핑| C
 ```
 
 여기서 중요한 특징은 **Zero-copy**라는 점입니다.  
