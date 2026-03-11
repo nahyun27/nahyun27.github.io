@@ -424,3 +424,313 @@ html[data-mode="dark"] .tag-post-link:hover {
     white-space: normal;
   }
 }
+
+/* =============================================================
+   Archives Page — Full Vertical Timeline
+   ============================================================= */
+
+/* ── Reset Chirpy's default archive pseudo-elements ─────────── */
+#archives.archives-timeline .year::before,
+#archives.archives-timeline .year::after,
+#archives.archives-timeline ul li::before,
+#archives.archives-timeline a::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* ── Timeline container ──────────────────────────────────────── */
+/* The continuous vertical line is drawn as a left border on this container */
+.archives-timeline {
+  position: relative;
+  /* padding-left: 40px;         room for the line + circles */
+  margin-left: 3rem;
+}
+
+/* The continuous vertical line */
+.archives-timeline::before {
+  content: '';
+  position: absolute;
+  left: 31px;                 /* centre of the 40px circle area (padding 56px, circle at left=11px, 11+20=31) */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    #4fc3f7 0%,
+    #29b6f6 30%,
+    #0288d1 65%,
+    #4fc3f7 100%
+  );
+  opacity: 0.4;
+  border-radius: 2px;
+}
+
+/* ── Shared node styles ──────────────────────────────────────── */
+.tl-node-circle {
+  position: absolute;
+  left: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+/* ── Year milestone node ─────────────────────────────────────── */
+.tl-year-node {
+  position: relative;
+  height: 40px;
+  margin-bottom: 0.4rem;
+  margin-top: 1.8rem;
+  display: flex;
+  align-items: center;
+}
+
+.tl-year-node:first-child { margin-top: 0.5rem; }
+
+.tl-year-circle {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #4fc3f7, #0288d1);
+  box-shadow:
+    0 0 0 4px rgba(79, 195, 247, 0.18),
+    0 4px 12px rgba(79, 195, 247, 0.35);
+  left: 11px;   /* centre on the line at left:31px → 31-20 = 11 */
+}
+
+.tl-year-circle span {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+/* ── Post node ───────────────────────────────────────────────── */
+.tl-post-node {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 0.35rem;
+}
+
+.tl-post-circle {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #4fc3f7;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.18);
+  left: 26px;   /* line at 31px minus 6px (half of 12px) = 25px */
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.tl-post-node:hover .tl-post-circle {
+  background: #4fc3f7;
+  transform: scale(1.4);
+}
+
+/* Horizontal arm from the line to the card */
+.tl-post-node::after {
+  content: '';
+  position: absolute;
+  left: 32px;
+  width: 28px;
+  height: 2px;
+  background: rgba(79, 195, 247, 0.4);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* ── Post card ───────────────────────────────────────────────── */
+.tl-post-card {
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  left: 15px;
+  gap: 0.75rem;
+  margin-left: 50px;          /* after the arm */
+  flex: 1;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--main-border-color, #e8e8e8);
+  background: var(--card-bg, #fff);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  min-width: 0;
+}
+
+.tl-post-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09);
+  border-color: #4fc3f7;
+  text-decoration: none;
+}
+
+/* Date */
+.tl-post-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.tl-day {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: Oswald, sans-serif;
+  color: #29b6f6;
+  line-height: 1;
+}
+
+.tl-month {
+  font-size: 0.72rem;
+  color: var(--text-muted-color, #999);
+  letter-spacing: 0.02em;
+}
+
+/* Title */
+.tl-post-title {
+  font-size: 0.97rem;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.tl-post-card:hover .tl-post-title {
+  color: var(--link-color, #0288d1);
+}
+
+/* End cap dot at the very bottom */
+.tl-end-cap {
+  position: relative;
+  height: 20px;
+  margin-top: 0.5rem;
+}
+
+.tl-end-cap::before {
+  content: '';
+  position: absolute;
+  left: 27px; /* desktop line is 2px at left:31px => center is 32. dot is 10px so 32-5 = 27px */
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(79, 195, 247, 0.35);
+  border: 2px solid rgba(79, 195, 247, 0.5);
+}
+
+/* ── Dark mode ───────────────────────────────────────────────── */
+html[data-mode="dark"] .archives-timeline::before {
+  background: linear-gradient(to bottom, #0288d1 0%, #01579b 50%, #0288d1 100%);
+  opacity: 0.5;
+}
+
+html[data-mode="dark"] .tl-year-circle {
+  background: linear-gradient(135deg, #0288d1, #01579b);
+  box-shadow:
+    0 0 0 3px rgba(2, 136, 209, 0.25),
+    0 3px 10px rgba(1, 87, 155, 0.5);
+}
+
+html[data-mode="dark"] .tl-post-circle {
+  background: var(--main-bg, #1b1b1e);
+  border-color: #0288d1;
+  box-shadow: 0 0 0 2px rgba(2, 136, 209, 0.2);
+}
+
+html[data-mode="dark"] .tl-post-node:hover .tl-post-circle {
+  background: #0288d1;
+}
+
+html[data-mode="dark"] .tl-post-node::after {
+  background: rgba(2, 136, 209, 0.4);
+}
+
+html[data-mode="dark"] .tl-post-card {
+  background: var(--card-bg, #1e1e1e);
+  border-color: var(--main-border-color, #2c2d2d);
+}
+
+html[data-mode="dark"] .tl-post-card:hover {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+  border-color: #0288d1;
+}
+
+html[data-mode="dark"] .tl-day { color: #29b6f6; }
+
+html[data-mode="dark"] .tl-post-card:hover .tl-post-title {
+  color: #29b6f6;
+}
+
+html[data-mode="dark"] .tl-end-cap::before {
+  background: rgba(2, 136, 209, 0.3);
+  border-color: rgba(2, 136, 209, 0.5);
+}
+
+/* system-level dark */
+@media (prefers-color-scheme: dark) {
+  html:not([data-mode="light"]) .archives-timeline::before {
+    background: linear-gradient(to bottom, #0288d1 0%, #01579b 50%, #0288d1 100%);
+    opacity: 0.5;
+  }
+  html:not([data-mode="light"]) .tl-year-circle {
+    background: linear-gradient(135deg, #0288d1, #01579b);
+    box-shadow: 0 0 0 3px rgba(2, 136, 209, 0.25), 0 3px 10px rgba(1, 87, 155, 0.5);
+  }
+  html:not([data-mode="light"]) .tl-post-circle {
+    background: var(--main-bg, #1b1b1e);
+    border-color: #0288d1;
+  }
+  html:not([data-mode="light"]) .tl-post-node:hover .tl-post-circle { background: #0288d1; }
+  html:not([data-mode="light"]) .tl-post-node::after { background: rgba(2, 136, 209, 0.4); }
+  html:not([data-mode="light"]) .tl-post-card {
+    background: var(--card-bg, #1e1e1e);
+    border-color: var(--main-border-color, #2c2d2d);
+  }
+  html:not([data-mode="light"]) .tl-post-card:hover {
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    border-color: #0288d1;
+  }
+  html:not([data-mode="light"]) .tl-day { color: #29b6f6; }
+  html:not([data-mode="light"]) .tl-post-card:hover .tl-post-title { color: #29b6f6; }
+}
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 576px) {
+  .archives-timeline {
+    padding-left: 0px;
+    margin-left: rem;
+  }
+  .archives-timeline::before { left: 18px; }
+
+  .tl-year-circle {
+    width: 32px;
+    height: 32px;
+    left: 3px;   /* 18 - (32/2) = 2. But we want center to fall on 18, so 3+16=19 ok line is 2px at 18/19 -> center is 19.  19 - 16 = 3! left: 3px is perfect. */
+  }
+  .tl-year-circle span { font-size: 0.65rem; }
+
+  .tl-post-circle { left: 13px; }  /* center falls on 13+6 = 19. perfect. */
+  .tl-post-node::after { left: 20px; width: 20px; }
+
+  .tl-post-card {
+    margin-left: 30px;
+    padding: 0.5rem 0.75rem;
+    left: 0px;
+    gap: 0.5rem;
+  }
+  .tl-post-title {
+    font-size: 0.88rem;
+    white-space: normal;
+  }
+  .tl-end-cap::before { left: 14px; } /* 14+5 = 19. perfect. */
+}
+
+

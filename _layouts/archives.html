@@ -1,0 +1,45 @@
+---
+layout: page
+# Archives — local override of jekyll-theme-chirpy gem
+---
+
+{% include lang.html %}
+
+{% assign df_strftime_m = site.data.locales[lang].df.archives.strftime | default: '/ %m' %}
+{% assign df_dayjs_m = site.data.locales[lang].df.archives.dayjs | default: '/ MM' %}
+
+<div id="archives" class="archives-timeline">
+  {% for post in site.posts %}
+    {% assign cur_year = post.date | date: '%Y' %}
+
+    {% if cur_year != last_year %}
+
+      {% comment %} Year node {% endcomment %}
+      <div class="tl-year-node">
+        <div class="tl-node-circle tl-year-circle">
+          <span>{{ cur_year }}</span>
+        </div>
+      </div>
+
+      {% assign last_year = cur_year %}
+    {% endif %}
+
+    {% comment %} Post node {% endcomment %}
+    <div class="tl-post-node">
+      <div class="tl-node-circle tl-post-circle"></div>
+      <a class="tl-post-card"
+         href="{{ post.url | relative_url }}"
+         aria-label="{{ post.title | escape }}">
+        <div class="tl-post-meta">
+          {% assign ts = post.date | date: '%s' %}
+          <span class="tl-day" data-ts="{{ ts }}" data-df="DD">{{ post.date | date: '%d' }}</span>
+          <span class="tl-month" data-ts="{{ ts }}" data-df="{{ df_dayjs_m }}">{{ post.date | date: df_strftime_m }}</span>
+        </div>
+        <span class="tl-post-title">{{ post.title }}</span>
+      </a>
+    </div>
+
+  {% endfor %}
+
+  <div class="tl-end-cap"></div>
+</div>
