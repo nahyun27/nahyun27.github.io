@@ -4,7 +4,7 @@ title: "왜 웹은 자바스크립트로 만드나요?"
 date: 2026-03-09 12:00:00 +0900
 
 categories: [Web, Programming]
-tags: [web, javascript, browser, frontend, backend, nodejs]
+tags: [web, javascript, browser, frontend, backend, nodejs, why]
 
 image:
   path: /assets/img/posts/why-javascript/cover.png
@@ -19,7 +19,7 @@ math: false
 
 > "파이썬 그렇게 쉽고 좋다면서 왜 웹 만들 때는 안 써? 왜 자바스크립트 쓰는 거야?"
 
-굉장히 좋은 질문이라는 생각이 들면서도 막상 설명하려니 생각보다 할 말이 많았다.
+굉장히 좋은 질문이라는 생각이 들면서도 막상 설명하려니 생각보다 할 말이 많았다.  
 (그리고 블로그 컨텐츠로도 좋겠다는 생각이 들었다.)
 
 단순히 “웹은 원래 자바스크립트를 써”라는 답으로는 부족하다.  
