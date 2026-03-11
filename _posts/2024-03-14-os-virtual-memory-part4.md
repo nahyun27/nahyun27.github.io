@@ -244,7 +244,7 @@ Low Address
 
 ---
 
-## 메모리를 페이지로 나누기
+### 메모리를 페이지로 나누기
 
 Virtual Memory 시스템에서는 메모리를 **고정된 크기의 블록**으로 나눕니다.
 
@@ -280,7 +280,7 @@ Physical Memory
 
 ---
 
-## Page Table 구조
+### Page Table 구조
 
 Page Table은 **Virtual Page → Physical Frame** 매핑 정보를 저장합니다.
 
@@ -326,7 +326,7 @@ Physical Address
 
 ---
 
-## 주소 분해 과정
+### 주소 분해 과정
 
 Virtual Address는 두 부분으로 나뉩니다.
 
@@ -364,7 +364,7 @@ Physical Frame + Offset
 
 ---
 
-## 예시
+#### 예시
 
 다음과 같은 주소가 있다고 가정해봅시다.
 
@@ -489,7 +489,7 @@ Linux x86-64에서 Virtual Address는 다음과 같이 나뉩니다.
 
 ---
 
-## 주소 변환 과정
+### 주소 변환 과정
 
 CPU가 Virtual Address를 받으면 다음 과정을 수행합니다.
 
@@ -534,7 +534,7 @@ PTE 1개
 
 ---
 
-## 실제 주소 변환 예시
+#### 실제 주소 변환 예시
 
 예를 들어 다음과 같은 Virtual Address가 있다고 가정해봅시다.
 
@@ -604,7 +604,7 @@ Virtual Address
 
 ---
 
-## TLB란?
+### TLB란?
 
 TLB는 **Page Table lookup 결과를 캐싱하는 하드웨어 캐시**입니다.
 
@@ -629,9 +629,9 @@ TLB Miss → Page Table Walk
 
 ---
 
-## TLB Hit vs Miss
+### TLB Hit vs Miss
 
-### TLB Hit
+#### TLB Hit
 
 TLB에 매핑 정보가 존재하는 경우입니다.
 
@@ -649,7 +649,7 @@ Memory Access
 
 ---
 
-### TLB Miss
+#### TLB Miss
 
 TLB에 정보가 없는 경우입니다.
 
@@ -672,7 +672,7 @@ Physical Address
 
 ---
 
-## 왜 TLB가 잘 동작할까?
+### 왜 TLB가 잘 동작할까?
 
 TLB가 효과적인 이유는 **Locality of Reference** 때문입니다.
 
@@ -701,7 +701,7 @@ for (int i = 0; i < 1000000; i++) {
 
 ---
 
-## TLB Flush
+### TLB Flush
 
 프로세스가 전환될 때는 문제가 발생합니다.
 
@@ -773,7 +773,7 @@ void *ptr = malloc(1ULL * 1024 * 1024 * 1024); // 1GB
 
 ---
 
-## Page Fault란?
+### Page Fault란?
 
 Page Fault는 **프로그램이 접근한 페이지가 아직 물리 메모리에 없는 경우** 발생하는 예외입니다.
 
@@ -811,7 +811,7 @@ Page Table 업데이트
 
 ---
 
-## Page Fault 처리 과정
+### Page Fault 처리 과정
 
 Page Fault가 발생하면 CPU는 즉시 **Kernel Mode**로 전환됩니다.
 
@@ -846,7 +846,7 @@ Segmentation fault (core dumped)
 
 ---
 
-## Demand Paging
+### Demand Paging
 
 Demand Paging은 **페이지가 실제로 필요할 때만 메모리를 할당하는 방식**입니다.
 
@@ -874,7 +874,7 @@ Physical Page 할당
 
 ---
 
-## Page Fault 예시 실험
+### Page Fault 예시 실험
 
 다음 프로그램을 실행해봅시다.
 
@@ -945,7 +945,7 @@ fork()
 
 ---
 
-## Copy-on-Write의 핵심 아이디어
+### Copy-on-Write의 핵심 아이디어
 
 `fork()`가 호출되면 **메모리를 바로 복사하지 않습니다.**
 
@@ -975,7 +975,7 @@ Virtual 0x1000 ─┘
 
 ---
 
-## 언제 복사가 일어날까?
+### 언제 복사가 일어날까?
 
 복사는 **쓰기(write)** 가 발생할 때만 일어납니다.
 
@@ -1033,7 +1033,7 @@ Child  ── Physical Page (20)
 
 ---
 
-## Copy-on-Write의 장점
+### Copy-on-Write의 장점
 
 이 방식은 운영체제에서 매우 중요한 최적화입니다.
 
@@ -1068,199 +1068,7 @@ Copy-on-Write 덕분에 Linux는 이 문제를 해결합니다.
 
 ---
 
-## COW와 Page Fault
-
-여기서 중요한 사실이 하나 있습니다.
-
-**Copy-on-Write도 Page Fault를 사용합니다.**
-
-흐름은 다음과 같습니다.
-
-~~~
-Write to shared page
-        ↓
-Page Fault 발생
-        ↓
-Kernel이 새 페이지 할당
-        ↓
-기존 페이지 복사
-        ↓
-Page Table 업데이트
-~~~
-
-즉 Page Fault는 단순히 **메모리 오류 처리**가 아니라
-
-- Demand Paging
-- Copy-on-Write
-- Memory Mapping
-
-같은 **가상 메모리 핵심 기능의 기반**이 됩니다.
-
----
-
-그리고 이제 마지막 퍼즐이 남았습니다.
-
-지금까지 우리는 이런 시스템 콜을 여러 번 봤습니다.
-
-~~~
-mmap()
-~~~
-
-Shared Memory에서도 등장했고, Virtual Memory에서도 계속 나타납니다.
-
-그렇다면 다음 질문이 자연스럽게 등장합니다.
-
-> `mmap()`은 도대체 무엇을 하는 시스템 콜일까요?
-
-----
-
-## Copy-on-Write (COW)
-
-앞에서 이런 질문을 던졌습니다.
-
-> `fork()`는 어떻게 그렇게 빠를까요?
-
-`fork()`는 **부모 프로세스를 그대로 복제**하는 시스템 콜입니다.
-
-하지만 만약 부모 프로세스가 **1GB 메모리**를 사용 중이라면 어떻게 될까요?
-
-~~~
-fork()
- → 1GB 메모리 복사
-~~~
-
-이 방식이라면 `fork()`는 **매우 느려야 합니다.**
-
-하지만 실제로는 **거의 즉시 반환됩니다.**
-
-그 이유가 바로 **Copy-on-Write (COW)** 입니다.
-
----
-
-## Copy-on-Write의 핵심 아이디어
-
-`fork()`가 호출되면 **메모리를 바로 복사하지 않습니다.**
-
-대신 다음과 같은 일이 발생합니다.
-
-~~~
-부모 Page Table
-        ↓
-자식 Page Table 생성
-        ↓
-둘 다 같은 Physical Memory를 가리킴
-        ↓
-페이지를 Read-Only로 표시
-~~~
-
-즉 부모와 자식 프로세스는 **같은 물리 메모리를 공유**합니다.
-
-~~~
-Process A (parent)
-Virtual 0x1000 ─┐
-                ├── Physical Page
-Process B (child)
-Virtual 0x1000 ─┘
-~~~
-
-이 상태에서는 **메모리 복사가 전혀 발생하지 않습니다.**
-
----
-
-## 언제 복사가 일어날까?
-
-복사는 **쓰기(write)** 가 발생할 때만 일어납니다.
-
-예를 들어 다음 코드입니다.
-
-~~~
-int *p = malloc(sizeof(int));
-*p = 10;
-
-pid_t pid = fork();
-
-if (pid == 0) {
-    *p = 20;  // 자식이 쓰기
-}
-~~~
-
-이때 내부적으로 발생하는 흐름은 다음과 같습니다.
-
-~~~
-fork()
- ↓
-부모와 자식이 같은 Physical Page 공유
- ↓
-자식이 *p = 20 실행
- ↓
-Write 시도 → Read-Only 페이지
- ↓
-Page Fault 발생
- ↓
-Kernel이 새로운 Physical Page 할당
- ↓
-기존 데이터 복사
- ↓
-자식 Page Table 업데이트
-~~~
-
-결과적으로 메모리는 다음과 같이 분리됩니다.
-
-~~~
-Before Write (Shared)
-
-Parent ─┐
-        ├── Physical Page (10)
-Child ──┘
-
-
-After Write (Copy)
-
-Parent ── Physical Page (10)
-
-Child  ── Physical Page (20)
-~~~
-
-이것이 바로 **Copy-on-Write** 입니다.
-
----
-
-## Copy-on-Write의 장점
-
-이 방식은 운영체제에서 매우 중요한 최적화입니다.
-
-- `fork()`가 매우 빠름
-- 불필요한 메모리 복사 제거
-- 메모리 사용량 감소
-
-특히 다음과 같은 경우에 효과적입니다.
-
-~~~
-fork()
- → exec()
-~~~
-
-Shell에서 명령어를 실행할 때 항상 등장하는 패턴입니다.
-
-예를 들어 다음과 같습니다.
-
-~~~
-pid = fork();
-
-if (pid == 0) {
-    execvp("ls", args);
-}
-~~~
-
-여기서 `exec()`가 호출되면 **프로세스 메모리가 완전히 교체**됩니다.
-
-따라서 `fork()` 직후 메모리를 복사하는 것은 **완전히 낭비**입니다.
-
-Copy-on-Write 덕분에 Linux는 이 문제를 해결합니다.
-
----
-
-## COW와 Page Fault
+### COW와 Page Fault
 
 여기서 중요한 사실이 하나 있습니다.
 
@@ -1324,7 +1132,7 @@ mmap()
 
 ---
 
-## 전통적인 파일 읽기 방식
+### 전통적인 파일 읽기 방식
 
 일반적으로 파일을 읽을 때는 다음과 같은 방식이 사용됩니다.
 
@@ -1362,7 +1170,7 @@ Kernel → User
 
 ---
 
-## mmap() 방식
+### mmap() 방식
 
 `mmap()`을 사용하면 흐름이 달라집니다.
 
@@ -1395,7 +1203,7 @@ printf("%c\n", data[0]);
 
 ---
 
-## mmap()의 동작
+### mmap()의 동작
 
 `mmap()`이 호출되면 운영체제는 다음 작업을 수행합니다.
 
@@ -1423,11 +1231,11 @@ Page Table 업데이트
 
 ---
 
-## mmap()의 두 가지 종류
+### mmap()의 두 가지 종류
 
 `mmap()`에는 크게 두 가지 방식이 있습니다.
 
-### 1. File-backed Mapping
+#### 1. File-backed Mapping
 
 파일을 메모리에 매핑합니다.
 
@@ -1448,7 +1256,7 @@ mmap(NULL, size,
 
 ---
 
-### 2. Anonymous Mapping
+#### 2. Anonymous Mapping
 
 파일 없이 **순수 메모리 매핑**을 생성합니다.
 
@@ -1467,7 +1275,7 @@ void *ptr = mmap(NULL, size,
 
 ---
 
-## mmap()과 Shared Memory
+### mmap()과 Shared Memory
 
 여기서 **Part 3의 내용과 연결**됩니다.
 
