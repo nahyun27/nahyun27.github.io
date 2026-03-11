@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "[운영체제 Deep Dive #4] 4GB RAM으로 16GB 쓰는 마법 - Virtual Memory의 모든 것"
+title: "[운영체제 Deep Dive #4] Virtual Memory 완전 정복 - Page Table과 MMU의 동작"
 date: 2024-03-14 14:00:00 +0900
 categories: [Operating System, Memory]
 tags: [operating-system, linux, virtual-memory, page-table, tlb, copy-on-write, mmu]
@@ -14,436 +14,716 @@ series: 운영체제 Deep Dive
 
 ## 들어가며
 
-이런 경험 있으신가요?
+[Part 3]({% post_url 2024-03-13-os-shared-memory-part3 %})에서는 **Shared Memory**를 살펴봤습니다.  
+여러 프로세스가 **같은 물리 메모리를 직접 공유**하여 데이터를 빠르게 교환하는 IPC 방식이었죠.
 
-```c
-int *huge = malloc(1024 * 1024 * 1024);  // 1GB 할당
-// → 즉시 리턴! (0.001초)
+그런데 여기서 자연스럽게 한 가지 질문이 생깁니다.
 
-// 실제 사용할 때
-huge[0] = 42;  // 이 순간 Page Fault!
-// → 이제서야 물리 메모리 할당
-```
+> 서로 다른 프로세스가 **같은 물리 메모리**를 어떻게 공유할 수 있을까요?
 
-**어떻게 가능할까요?**
+각 프로세스는 보통 **서로 독립적인 주소 공간**을 가지고 있습니다.  
+Process A의 `0x1000` 주소와 Process B의 `0x1000` 주소는 실제로는 **완전히 다른 메모리**를 가리키는 것이 일반적입니다.
 
-```bash
-$ free -h
-              total        used        free
-Mem:           4Gi        3.5Gi       500Mi
+하지만 Shared Memory에서는 이런 일이 가능합니다.
 
-$ ./program  # 10GB 메모리 할당 요청
-# → 에러 안 남! 정상 실행!
-```
+~~~
+Process A: VA 0x1000
+Process B: VA 0x5000
+                ↓
+        Physical Memory 0xABCD
+~~~
 
-**4GB RAM에서 10GB를 쓴다?!**
+즉, **서로 다른 가상 주소가 같은 물리 메모리를 가리키는 것**입니다.
 
-오늘은 OS의 가장 아름다운 추상화, **Virtual Memory**를 파헤쳐봅시다.
+이것을 가능하게 만드는 것이 바로 **Virtual Memory(가상 메모리)** 입니다.
+
+가상 메모리는 현대 운영체제의 핵심 메커니즘으로, 다음과 같은 일을 가능하게 합니다.
+
+- 각 프로세스에게 **독립적인 주소 공간 제공**
+- 실제 RAM보다 **더 큰 메모리 공간처럼 사용**
+- 프로세스 간 **메모리 보호**
+- `fork()`에서 사용하는 **Copy-on-Write**
+- `mmap()` 기반 **Memory-Mapped I/O**
+
+이번 글에서는 Virtual Memory가 어떻게 동작하는지 **운영체제 내부 관점**에서 살펴봅니다.
+
+특히 다음 내용을 중심으로 다룰 예정입니다.
+
+~~~
+1. Virtual Address vs Physical Address
+2. Page Table 구조 (4-level paging)
+3. MMU와 주소 변환 과정
+4. TLB (속도 최적화)
+5. Page Fault 처리
+6. Copy-on-Write
+7. mmap과 Memory-Mapped I/O
+~~~
+
+이 글을 읽고 나면 다음 질문에 답할 수 있게 됩니다.
+
+- 프로그램이 사용하는 주소는 **왜 항상 0x400000 같은 값일까?**
+- `malloc()`은 **왜 즉시 메모리를 할당하지 않을까?**
+- `fork()`는 **왜 생각보다 빠를까?**
+- `mmap()`은 **어떻게 파일을 메모리처럼 사용할까?**
 
 ---
 
 ## Virtual Memory란?
 
-### 물리 메모리 vs 가상 메모리
+현대 운영체제에서 **프로세스는 실제 물리 메모리를 직접 사용하지 않습니다.**
 
-**물리 메모리 (Physical Memory)**:
-```
-실제 RAM 칩에 있는 메모리
-- 크기: 고정 (예: 4GB, 16GB)
-- 주소: 0x0000 ~ 0x3FFF FFFF (4GB)
-- 공유: 모든 프로세스가 공유
-```
+대신 각 프로세스는 **Virtual Address Space(가상 주소 공간)** 을 사용합니다.
 
-**가상 메모리 (Virtual Memory)**:
-```
-프로세스가 보는 메모리 (환상!)
-- 크기: 매우 큼 (예: 128TB on x86-64)
-- 주소: 0x0000 ~ 0x7FFF FFFF FFFF
-- 독립: 각 프로세스마다 별도
-```
+즉 프로그램이 보는 메모리는 실제 RAM이 아니라 **가상 주소(Virtual Address)** 입니다.
 
----
+예를 들어 프로그램 내부에서 이런 코드가 있다고 해봅시다.
 
-### 왜 Virtual Memory?
+~~~
+int x = 10;
+printf("%p\n", &x);
+~~~
 
-**문제 1: 메모리 부족**
-```c
-// 물리 메모리만 사용한다면...
-void *p1 = malloc(2GB);  // 프로세스 A
-void *p2 = malloc(2GB);  // 프로세스 B
-void *p3 = malloc(2GB);  // 프로세스 C → 에러!
-// 4GB RAM에서 6GB 할당 불가
-```
+출력은 보통 이런 식입니다.
 
-**해결: Swap + Paging**
-```
-디스크를 메모리처럼 사용!
-자주 안 쓰는 페이지 → 디스크로
-```
+~~~
+0x7ffd3a8c1b2c
+~~~
 
----
+하지만 이 주소는 **실제 RAM 주소가 아닙니다.**
 
-**문제 2: 보안 (프로세스 간 간섭)**
-```c
-// 프로세스 A
-int *p = (int *)0x1000;
-*p = 42;
+이것은 **Virtual Address** 입니다.
 
-// 프로세스 B
-int *q = (int *)0x1000;  // 같은 주소!
-*q = 100;  // A의 데이터 덮어씀! 위험!
-```
+실제 하드웨어 메모리는 다음과 같이 존재합니다.
 
-**해결: 주소 공간 분리**
-```
-각 프로세스마다 독립적인 가상 주소 공간
-0x1000 (프로세스 A) → 물리 주소 0x5000
-0x1000 (프로세스 B) → 물리 주소 0x8000
-```
+~~~
+Physical Memory (RAM)
+
+0x00000000
+0x00001000
+0x00002000
+...
+0x7fffffff
+~~~
+
+운영체제는 프로그램이 사용하는 **Virtual Address**를  
+실제 **Physical Address**로 변환해줍니다.
+
+이 변환 과정은 다음과 같이 이루어집니다.
+
+~~~
+Virtual Address
+      ↓
+Page Table
+      ↓
+Physical Address
+~~~
+
+이 작업을 담당하는 하드웨어가 바로 **MMU (Memory Management Unit)** 입니다.
 
 ---
 
-**문제 3: 메모리 단편화**
-```
-물리 메모리:
-[프로세스A][빈공간][프로세스B][빈공간][프로세스C]
-           ↑ 50MB           ↑ 30MB
-  → 80MB 빈 공간 있지만 연속적이지 않음!
-  → 70MB 할당 불가!
-```
+### 왜 Virtual Memory가 필요할까?
 
-**해결: Paging**
-```
-연속적이지 않아도 OK!
-가상 메모리: [연속적]
-물리 메모리: [조각조각 흩어진 페이지들]
-```
+Virtual Memory는 단순한 추상화가 아니라 **운영체제의 핵심 기능**을 가능하게 합니다.
+
+대표적으로 다음과 같은 기능들이 있습니다.
+
+#### 1️⃣ 프로세스 메모리 격리
+
+각 프로세스는 **자신만의 독립적인 주소 공간**을 가집니다.
+
+~~~
+Process A
+0x400000 → code
+0x600000 → heap
+
+Process B
+0x400000 → code
+0x600000 → heap
+~~~
+
+같은 주소를 사용하지만 실제로는 **다른 물리 메모리**를 가리킵니다.
+
+그래서 한 프로세스가 다른 프로세스의 메모리를 **침범할 수 없습니다.**
 
 ---
 
-## Paging: 메모리를 쪼개다
+#### 2️⃣ 실제 RAM보다 큰 메모리 사용
 
-### Page와 Frame
+예를 들어 RAM이 **8GB**인 시스템에서도 프로그램은 더 큰 메모리를 사용할 수 있습니다.
 
-**Page (가상 메모리)**:
-```
-가상 주소 공간을 고정 크기로 나눈 블록
-크기: 보통 4KB (4096 bytes)
-```
+~~~
+Program allocates: 16GB
+Physical RAM:      8GB
+~~~
 
-**Frame (물리 메모리)**:
-```
-물리 주소 공간을 고정 크기로 나눈 블록
-크기: Page와 동일 (4KB)
-```
+부족한 메모리는 디스크의 **Swap 공간**을 사용하여 관리합니다.
 
-**관계**:
-```
+---
+
+#### 3️⃣ Lazy Allocation
+
+흥미로운 점은 `malloc()`이 **즉시 메모리를 할당하지 않는다는 것**입니다.
+
+~~~
+void *ptr = malloc(1ULL * 1024 * 1024 * 1024); // 1GB
+~~~
+
+이 코드는 보통 **즉시 성공합니다.**
+
+하지만 실제 RAM은 **아직 할당되지 않았습니다.**
+
+실제 메모리는 **처음 접근할 때** 할당됩니다.
+
+~~~
+ptr[0] = 1;
+        ↑
+    Page Fault 발생
+        ↑
+    OS가 실제 페이지 할당
+~~~
+
+이것을 **Demand Paging**이라고 합니다.
+
+---
+
+### Virtual Address 공간 구조
+
+Linux의 일반적인 64-bit 프로세스 메모리 구조는 다음과 같습니다.
+
+~~~
+High Address
++--------------------+
+| Kernel Space       |
++--------------------+
+| Stack              |
+|        ↓           |
+|                    |
+| Memory Mapping     |
+| (mmap)             |
+|                    |
+| Heap               |
+|        ↑           |
++--------------------+
+| Data               |
++--------------------+
+| Text (Code)        |
++--------------------+
+Low Address
+~~~
+
+각 영역의 역할은 다음과 같습니다.
+
+**Text**: 프로그램 코드, 읽기 전용
+
+**Data**: 전역 변수, 정적 변수
+
+**Heap**: malloc / new 로 할당, 위쪽으로 증가
+
+**Stack**: 함수 호출, 지역 변수, 아래쪽으로 증가
+
+---
+
+하지만 여기서 중요한 질문이 하나 생깁니다.
+
+> Virtual Address는 **어떻게 Physical Address로 변환될까요?**
+
+이 변환을 담당하는 핵심 구조가 바로 **Page Table** 입니다.
+
+---
+
+## Page Table: 가상 주소 → 물리 주소 변환
+
+앞에서 보았듯이 프로그램이 사용하는 주소는 **Virtual Address**입니다.
+
+하지만 실제 RAM은 **Physical Address**로 구성되어 있습니다.
+
+그렇다면 CPU는 어떻게 이 주소를 변환할까요?
+
+핵심은 바로 **Page Table** 입니다.
+
+---
+
+## 메모리를 페이지로 나누기
+
+Virtual Memory 시스템에서는 메모리를 **고정된 크기의 블록**으로 나눕니다.
+
+이 블록을 **Page**라고 합니다.
+
+Linux에서 일반적인 페이지 크기는 다음과 같습니다.
+
+~~~
+Page Size = 4KB (4096 bytes)
+~~~
+
+그래서 메모리는 다음과 같이 나뉩니다.
+
+~~~
+Virtual Memory
+
++--------+--------+--------+--------+
+| Page 0 | Page 1 | Page 2 | Page 3 |
++--------+--------+--------+--------+
+
+Physical Memory
+
++--------+--------+--------+--------+
+|Frame 5 |Frame 2 |Frame 9 |Frame 1 |
++--------+--------+--------+--------+
+~~~
+
+여기서 중요한 점은 다음입니다.
+
+> **Virtual Page와 Physical Frame은 1:1로 매핑됩니다.**
+
+이 매핑 정보를 저장하는 것이 바로 **Page Table**입니다.
+
+---
+
+## Page Table 구조
+
+Page Table은 **Virtual Page → Physical Frame** 매핑 정보를 저장합니다.
+
+예를 들어 다음과 같은 Page Table이 있다고 해봅시다.
+
+~~~
+Virtual Page   Physical Frame
+-----------    --------------
+0              5
+1              2
+2              9
+3              1
+~~~
+
+이 의미는 다음과 같습니다.
+
+~~~
 Virtual Page 0 → Physical Frame 5
 Virtual Page 1 → Physical Frame 2
 Virtual Page 2 → Physical Frame 9
-...
-```
+Virtual Page 3 → Physical Frame 1
+~~~
+
+즉 프로그램이 사용하는 주소가
+
+~~~
+Virtual Address = 0x1234
+~~~
+
+라면 내부적으로 다음과 같은 과정이 일어납니다.
+
+~~~
+Virtual Address
+      ↓
+Page Number + Offset
+      ↓
+Page Table lookup
+      ↓
+Physical Frame + Offset
+      ↓
+Physical Address
+~~~
 
 ---
 
-### 주소 변환
+## 주소 분해 과정
 
-**Virtual Address 구조** (4KB page 기준):
+Virtual Address는 두 부분으로 나뉩니다.
 
-```
-64-bit Virtual Address (x86-64):
-┌────────────┬─────────────┬─────────────┐
-│ Page Number│   Offset    │  (unused)   │
-│   52 bits  │   12 bits   │   12 bits   │
-└────────────┴─────────────┴─────────────┘
-              ↓             ↓
-        Page Table       Page 내 위치
-```
+~~~
+[ Page Number | Offset ]
+~~~
 
-**예시**:
-```
-Virtual Address: 0x0000 1234 5678
+예를 들어 **페이지 크기가 4KB**라면 다음과 같습니다.
 
-분해:
-Page Number: 0x00001234 5 (상위 비트)
-Offset:      0x678         (하위 12비트 = 4KB)
+~~~
+Page Size = 4096 bytes = 2^12
+~~~
 
-변환:
-Page Table lookup → Physical Frame Number: 0xABCDE
-Physical Address: 0xABCDE678
-```
+즉 **Offset은 12비트**가 됩니다.
 
----
+그래서 48-bit Virtual Address의 구조는 다음과 같습니다.
 
-### Page Table Entry (PTE)
+~~~
+| Page Number | Offset |
+|    36 bits  | 12 bits|
+~~~
 
-**구조** (64-bit):
+여기서 중요한 점은 다음입니다.
 
-```c
-typedef struct {
-    unsigned long present    : 1;  // 메모리에 존재?
-    unsigned long writable   : 1;  // 쓰기 가능?
-    unsigned long user       : 1;  // 유저 모드 접근 가능?
-    unsigned long pwt        : 1;  // Page write-through
-    unsigned long pcd        : 1;  // Page cache disabled
-    unsigned long accessed   : 1;  // 최근 접근?
-    unsigned long dirty      : 1;  // 수정됨?
-    unsigned long pat        : 1;  // Page attribute table
-    unsigned long global     : 1;  // Global page
-    unsigned long available  : 3;  // OS 사용 가능
-    unsigned long frame_num  : 40; // 물리 프레임 번호 ★
-    unsigned long reserved   : 11;
-    unsigned long nx         : 1;  // No execute (보안!)
-} pte_t;
-```
+- **Offset은 페이지 내부 위치**
+- Page Table 변환에서는 **Offset이 변하지 않습니다**
 
-**핵심 비트**:
+즉 주소 변환은 다음과 같이 이루어집니다.
 
-- **Present (P)**: 1 = RAM에 있음, 0 = Swap/Disk
-- **Writable (W)**: 1 = 쓰기 가능, 0 = Read-only
-- **User (U)**: 1 = 유저 접근 OK, 0 = 커널만
-- **Accessed (A)**: 1 = 최근 접근함 (Page Replacement 참고)
-- **Dirty (D)**: 1 = 수정됨 (Swap 시 디스크 쓰기 필요)
-- **NX (No eXecute)**: 1 = 실행 불가 (Buffer Overflow 방어!)
+~~~
+Physical Address
+    =
+Physical Frame + Offset
+~~~
 
 ---
 
-## Multi-level Page Table
+## 예시
 
-### 왜 Multi-level?
+다음과 같은 주소가 있다고 가정해봅시다.
 
-**문제: 1-level Page Table의 크기**
+~~~
+Virtual Address = 0x1234
+Page Size       = 4KB
+~~~
 
-```
-가상 주소 공간: 48-bit (x86-64)
-Page 크기: 4KB (12-bit offset)
-→ Page 수: 2^(48-12) = 2^36 pages
+주소를 분해하면 다음과 같습니다.
 
-PTE 크기: 8 bytes
-→ Page Table 크기: 2^36 * 8 = 512 GB!
+~~~
+Page Number = 0x1
+Offset      = 0x234
+~~~
 
-각 프로세스마다 512GB Page Table?!
-→ 불가능!
-```
+이제 Page Table을 조회합니다.
 
----
+~~~
+Page Table
 
-### 4-level Page Table (x86-64)
+Page 0 → Frame 5
+Page 1 → Frame 7
+Page 2 → Frame 3
+~~~
 
-**구조**:
+따라서 변환 결과는 다음과 같습니다.
 
-```
-48-bit Virtual Address:
-┌──────┬──────┬──────┬──────┬────────┐
-│ PGD  │ PUD  │ PMD  │ PTE  │ Offset │
-│ 9bit │ 9bit │ 9bit │ 9bit │ 12bit  │
-└──────┴──────┴──────┴──────┴────────┘
-   ↓      ↓      ↓      ↓       ↓
-  512   512    512    512    4096
- entry  entry  entry  entry  bytes
-```
+~~~
+Page 1 → Frame 7
+~~~
 
-**레벨**:
-1. **PGD (Page Global Directory)**: 최상위
-2. **PUD (Page Upper Directory)**
-3. **PMD (Page Middle Directory)**
-4. **PTE (Page Table Entry)**: 최하위
-5. **Offset**: 페이지 내 위치
+최종 Physical Address는
 
----
+~~~
+Physical Address = Frame7 + 0x234
+~~~
 
-### Page Walk 예시
-
-**Virtual Address**: `0x00007F1234567890`
-
-```
-Binary: 0000 0000 0000 0000 0111 1111 0001 0010 0011 0100 0101 0110 0111 1000 1001 0000
-
-분해:
-PGD index: 000000000 (0)
-PUD index: 111111000 (504)
-PMD index: 100100011 (291)
-PTE index: 010001010 (138)
-Offset:    011001110010000 (0x890)
-```
-
-**Walk 과정**:
-
-```
-1. CR3 레지스터 → PGD 물리 주소
-   PGD base: 0x1000
-
-2. PGD[0] → PUD 물리 주소
-   PGD[0] = 0x2000 | flags
-
-3. PUD[504] → PMD 물리 주소
-   PUD[504] = 0x3000 | flags
-
-4. PMD[291] → PTE 물리 주소
-   PMD[291] = 0x4000 | flags
-
-5. PTE[138] → Frame 물리 주소
-   PTE[138] = 0xABCDE000 | flags
-
-6. Physical Address = Frame + Offset
-   0xABCDE000 + 0x890 = 0xABCDE890
-```
-
-**메모리 접근 횟수**: **5번!**  
-(CR3 → PGD → PUD → PMD → PTE → 실제 데이터)
+이 과정은 프로그램이 직접 하는 것이 아니라  
+**CPU 내부의 MMU(Memory Management Unit)** 가 자동으로 수행합니다.
 
 ---
 
-### Page Table 크기 계산
+하지만 여기서 중요한 문제가 하나 발생합니다.
 
-**실제 사용하는 메모리만 할당**:
+> Virtual Address가 매우 크다면 Page Table은 얼마나 커질까요?
 
-```c
-// 프로세스가 1MB만 사용
-1MB / 4KB = 256 pages
+예를 들어 다음과 같은 시스템을 생각해봅시다.
 
-필요한 Page Table:
-- PGD: 1개 (항상)
-- PUD: 1개
-- PMD: 1개
-- PTE: 1개 (256 entries)
+~~~
+Virtual Address = 48 bits
+Page Size       = 4KB
+~~~
 
-총 크기: 4 * 4KB = 16KB
-(vs 1-level: 512GB!)
-```
+그러면 페이지 개수는 다음과 같습니다.
 
----
+~~~
+2^(48-12) = 2^36 pages
+~~~
 
-## Translation Lookaside Buffer (TLB)
+즉 Page Table만 해도 **수십 GB 크기**가 필요합니다.
 
-### TLB란?
-
-**문제**:
-```
-매 메모리 접근마다 5번 메모리 읽기?
-→ 너무 느림!
-```
-
-**해결: TLB (캐시!)**
-
-```
-TLB: 최근 주소 변환 결과 캐싱
-
-Virtual Page Number → Physical Frame Number
-```
+이 문제를 해결하기 위해 현대 운영체제는  
+**Multi-Level Page Table** 구조를 사용합니다.
 
 ---
 
-### TLB 동작
+## 4-Level Page Table (Linux Paging 구조)
 
-```
-CPU가 가상 주소 접근:
+앞에서 보았듯이 단순한 Page Table을 사용하면 문제가 발생합니다.
 
-1. TLB 확인
-   ├─ Hit: 즉시 물리 주소 획득! (0.5ns)
-   └─ Miss: Page Walk 수행 (100ns)
-             → TLB에 저장
+예를 들어 다음과 같은 시스템을 생각해봅시다.
 
-2. 실제 메모리 접근
-```
+~~~
+Virtual Address = 48 bits
+Page Size       = 4KB
+~~~
 
----
+페이지 수는 다음과 같습니다.
 
-### TLB 구조
+~~~
+2^(48 - 12) = 2^36 pages
+~~~
 
-**일반적인 TLB**:
+즉 Page Table 엔트리가 **2^36개** 필요합니다.
 
-```
-Intel Core i7:
-- L1 DTLB: 64 entries (data)
-- L1 ITLB: 128 entries (instruction)
-- L2 TLB: 1536 entries (unified)
+엔트리 하나가 8 bytes라고 가정하면
 
-각 Entry:
-┌────────────┬─────────────┬───────┐
-│ Virtual PN │ Physical FN │ Flags │
-└────────────┴─────────────┴───────┘
-```
+~~~
+2^36 × 8 bytes = 512GB
+~~~
 
----
+Page Table만 **512GB**가 필요합니다.
 
-### TLB Miss 처리
+물리 메모리보다 더 큰 구조가 필요한 셈입니다.
 
-**Hardware-managed TLB** (x86):
-```
-1. TLB Miss 발생
-2. CPU가 자동으로 Page Walk
-3. PTE 찾아서 TLB에 저장
-4. 명령 재시작
-```
+그래서 현대 운영체제는 **Multi-Level Page Table**을 사용합니다.
 
-**Software-managed TLB** (MIPS):
-```
-1. TLB Miss 발생
-2. Exception → OS 호출
-3. OS가 Page Walk
-4. OS가 TLB 업데이트
-5. 명령 재시작
-```
+Linux에서는 일반적으로 **4-Level Paging** 구조를 사용합니다.
 
 ---
 
-### TLB Performance
+## 48-bit Virtual Address 구조
 
-**Hit Rate의 중요성**:
+Linux x86-64에서 Virtual Address는 다음과 같이 나뉩니다.
 
-```
-Assumptions:
-- TLB hit time: 0.5ns
-- Memory access time: 100ns
-- TLB hit rate: 99%
+~~~
+| PGD | PUD | PMD | PTE | Offset |
+| 9b  | 9b  | 9b  | 9b  | 12b   |
+~~~
 
-Effective Access Time (EAT):
-= 0.99 * (0.5 + 100)     [TLB hit]
-+ 0.01 * (0.5 + 5*100 + 100)  [TLB miss]
-= 99.495 + 6.005
-= 105.5ns
+각 필드의 의미는 다음과 같습니다.
 
-vs TLB hit rate: 80%
-EAT = 80 * 100.5 + 20 * 600.5
-    = 80.4 + 120.1 = 200.5ns
+**PGD**: Page Global Directory
 
-→ Hit rate 20% 차이 = 2배 성능 차이!
-```
+**PUD**: Page Upper Directory
+
+**PMD**: Page Middle Directory
+
+**PTE**: Page Table Entry
+
+**Offset**: 페이지 내부 위치
 
 ---
 
-### TLB Flush
+## 주소 변환 과정
 
-**언제 Flush?**
+CPU가 Virtual Address를 받으면 다음 과정을 수행합니다.
 
-```c
-// Context Switch (프로세스 전환)
-switch_to(process_A, process_B);
-→ TLB flush (A의 변환 정보 무효)
-→ B의 Page Table 적용
+~~~
+Virtual Address
+      ↓
+PGD index
+      ↓
+PUD index
+      ↓
+PMD index
+      ↓
+PTE index
+      ↓
+Physical Frame + Offset
+~~~
 
-// Page Table 변경
-munmap(addr, size);
-→ 해당 페이지 TLB 무효화
+즉 주소 변환은 다음과 같은 **트리 구조 탐색**입니다.
 
-// Fork + exec
-fork();
-exec("/bin/ls");
-→ 완전히 새로운 주소 공간
-→ TLB 전체 flush
-```
+~~~
+PGD
+ └── PUD
+      └── PMD
+           └── PTE
+                └── Physical Page
+~~~
 
-**비용**:
-```
-TLB flush → 다음 여러 메모리 접근이 모두 Miss
-→ 성능 저하!
-```
+이 방식의 장점은 **필요한 부분만 메모리에 생성**된다는 것입니다.
+
+예를 들어 어떤 프로세스가 **4KB만 사용**한다면 실제로 필요한 것은
+
+~~~
+PGD 1개
+PUD 1개
+PMD 1개
+PTE 1개
+~~~
+
+뿐입니다.
+
+그래서 Page Table 메모리 사용량이 **극적으로 줄어듭니다.**
 
 ---
 
-### ASID (Address Space Identifier)
+## 실제 주소 변환 예시
+
+예를 들어 다음과 같은 Virtual Address가 있다고 가정해봅시다.
+
+~~~
+0x7f12abcd1234
+~~~
+
+이 주소는 내부적으로 다음과 같이 분해됩니다.
+
+~~~
+PGD index
+PUD index
+PMD index
+PTE index
+Offset
+~~~
+
+CPU의 **MMU**는 다음과 같은 순서로 메모리를 탐색합니다.
+
+~~~
+1. PGD에서 PUD 위치 찾기
+2. PUD에서 PMD 위치 찾기
+3. PMD에서 PTE 위치 찾기
+4. PTE에서 Physical Frame 찾기
+5. Offset 더하기
+~~~
+
+결과적으로 **Physical Address**가 계산됩니다.
+
+---
+
+하지만 여기서 또 하나의 문제가 있습니다.
+
+> 메모리 접근마다 Page Table을 4번이나 조회해야 할까요?
+
+이렇게 되면 메모리 접근이 매우 느려집니다.
+
+그래서 CPU에는 **TLB (Translation Lookaside Buffer)** 라는  
+**주소 변환 캐시**가 존재합니다.
+
+---
+## TLB (Translation Lookaside Buffer)
+
+앞에서 본 것처럼 Virtual Address를 Physical Address로 변환하려면  
+이론적으로 다음 과정을 거쳐야 합니다.
+
+~~~
+Virtual Address
+ → PGD
+ → PUD
+ → PMD
+ → PTE
+ → Physical Address
+~~~
+
+즉 **최대 4번의 메모리 접근**이 필요합니다.
+
+그리고 마지막에 실제 데이터를 읽기 위해 **한 번 더 메모리 접근**이 발생합니다.
+
+~~~
+총 5번의 메모리 접근
+~~~
+
+이는 성능에 매우 치명적입니다.
+
+그래서 CPU에는 이를 해결하기 위한 **TLB (Translation Lookaside Buffer)** 가 존재합니다.
+
+---
+
+## TLB란?
+
+TLB는 **Page Table lookup 결과를 캐싱하는 하드웨어 캐시**입니다.
+
+즉 다음과 같은 정보를 저장합니다.
+
+~~~
+Virtual Page → Physical Frame
+~~~
+
+CPU가 메모리에 접근할 때 과정은 다음과 같습니다.
+
+~~~
+Virtual Address
+      ↓
+TLB 조회
+      ↓
+TLB Hit → 바로 Physical Address
+TLB Miss → Page Table Walk
+~~~
+
+즉 대부분의 경우 **Page Table을 아예 조회하지 않습니다.**
+
+---
+
+## TLB Hit vs Miss
+
+### TLB Hit
+
+TLB에 매핑 정보가 존재하는 경우입니다.
+
+~~~
+Virtual Address
+      ↓
+TLB Hit
+      ↓
+Physical Address
+      ↓
+Memory Access
+~~~
+
+이 경우 주소 변환이 **매우 빠르게** 수행됩니다.
+
+---
+
+### TLB Miss
+
+TLB에 정보가 없는 경우입니다.
+
+~~~
+Virtual Address
+      ↓
+TLB Miss
+      ↓
+Page Table Walk
+      ↓
+TLB 업데이트
+      ↓
+Physical Address
+~~~
+
+이 과정은 상대적으로 **느립니다.**
+
+하지만 한번 변환되면 **TLB에 저장되기 때문에**  
+다음 접근은 빠르게 처리됩니다.
+
+---
+
+## 왜 TLB가 잘 동작할까?
+
+TLB가 효과적인 이유는 **Locality of Reference** 때문입니다.
+
+프로그램은 일반적으로 **근처 메모리를 반복해서 접근**합니다.
+
+예를 들어 다음과 같은 코드가 있다고 해봅시다.
+
+~~~
+for (int i = 0; i < 1000000; i++) {
+    sum += arr[i];
+}
+~~~
+
+배열 `arr`은 **연속된 메모리**에 존재합니다.
+
+즉 대부분의 접근은 **같은 페이지 안에서 발생**합니다.
+
+그래서
+
+~~~
+한 번 TLB에 올라가면
+→ 수천 번 재사용
+~~~
+
+이것이 가능한 이유입니다.
+
+---
+
+## TLB Flush
+
+프로세스가 전환될 때는 문제가 발생합니다.
+
+각 프로세스는 **서로 다른 Page Table**을 가지고 있기 때문입니다.
+
+~~~
+Process A → Page Table A
+Process B → Page Table B
+~~~
+
+그래서 Context Switch가 발생하면 보통 다음이 수행됩니다.
+
+~~~
+TLB Flush
+~~~
+
+즉 기존 TLB 내용을 모두 지웁니다.
+
+하지만 최신 CPU는 이를 최적화하기 위해  
+**ASID (Address Space Identifier)** 같은 기술을 사용합니다.
+
+<!-- #### ASID (Address Space Identifier)
 
 **TLB Flush 최적화**:
 
@@ -460,682 +740,916 @@ TLB Entry에 프로세스 ID 추가
 
 → Context Switch 시 flush 불필요!
 → 여러 프로세스의 변환 정보 공존
-```
+``` -->
+
 
 ---
 
-## Page Fault
+하지만 아직 중요한 상황이 하나 남아 있습니다.
 
-### Page Fault란?
+> 만약 Page Table에 **매핑이 존재하지 않는다면** 어떻게 될까요?
 
-**발생 조건**:
+즉 프로그램이 아직 할당되지 않은 메모리를 접근하면 어떻게 될까요?
 
-```c
-int *p = malloc(1GB);  // 가상 메모리만 할당
-p[0] = 42;  ← Page Fault! (Present bit = 0)
-```
-
-**종류**:
-
-1. **Minor Fault**: 페이지가 RAM에는 있지만 Page Table에 없음
-2. **Major Fault**: 페이지가 Disk에 있음 (Swap)
-3. **Invalid Fault**: 접근 불가 영역 (Segmentation Fault!)
+이때 발생하는 것이 바로 **Page Fault** 입니다.
 
 ---
 
-### Page Fault Handler 동작
+## Page Fault와 Demand Paging
 
-```
-1. CPU가 Page Fault 감지
-   ├─ Present bit = 0
-   └─ Exception 발생
+앞에서 `malloc()`이 **즉시 실제 메모리를 할당하지 않는다**는 이야기를 했습니다.
 
-2. 제어권이 Kernel로
-   ├─ Page Fault Handler 호출
-   └─ 오류 주소 저장 (CR2 레지스터)
+예를 들어 다음 코드를 생각해봅시다.
 
-3. Page Fault 원인 판단
-   ├─ Invalid Address? → SIGSEGV (Segmentation Fault)
-   ├─ Permission Denied? → SIGSEGV
-   ├─ Copy-on-Write? → 페이지 복사
-   └─ Swap에 있음? → Disk에서 로드
+~~~
+void *ptr = malloc(1ULL * 1024 * 1024 * 1024); // 1GB
+~~~
 
-4. 페이지 할당 및 매핑
-   ├─ 물리 프레임 할당
-   ├─ 필요시 Disk에서 읽기
-   ├─ Page Table 업데이트 (Present = 1)
-   └─ TLB 업데이트
+이 코드는 보통 **즉시 성공합니다.**
 
-5. 명령 재시작
-   └─ 이제 성공!
-```
+하지만 실제로는 **1GB RAM이 바로 할당되지 않습니다.**
+
+왜냐하면 운영체제는 **Demand Paging**이라는 전략을 사용하기 때문입니다.
 
 ---
 
-### Demand Paging (요구 페이징)
+## Page Fault란?
 
-**Lazy Allocation**:
+Page Fault는 **프로그램이 접근한 페이지가 아직 물리 메모리에 없는 경우** 발생하는 예외입니다.
 
-```c
-void *huge = malloc(1GB);
-// → 즉시 리턴 (가상 메모리만 예약)
-// → 실제 RAM 할당 안 함!
+예를 들어 다음 코드가 있다고 합시다.
 
-huge[0] = 42;  // 첫 번째 접근
-// → Page Fault!
-// → 이제서야 4KB 할당
+~~~
+int *arr = malloc(1024 * 1024 * 1024);
 
-huge[4096] = 100;  // 두 번째 페이지 접근
-// → Page Fault!
-// → 또 4KB 할당
+arr[0] = 1;
+~~~
 
-// 1GB 할당했지만 실제로는 8KB만 사용!
-```
+이때 내부적으로 일어나는 과정은 다음과 같습니다.
 
-**이점**:
-- 메모리 낭비 방지
-- 빠른 할당
-- fork() 최적화 (Copy-on-Write와 함께)
+~~~
+arr[0] 접근
+    ↓
+Virtual Address 생성
+    ↓
+Page Table 조회
+    ↓
+페이지 없음 (Present bit = 0)
+    ↓
+Page Fault 발생
+    ↓
+Kernel 진입
+    ↓
+물리 페이지 할당
+    ↓
+Page Table 업데이트
+    ↓
+프로그램 재실행
+~~~
+
+즉 **Page Fault는 오류가 아니라 정상적인 메커니즘**입니다.
 
 ---
 
-### Copy-on-Write (COW)
+## Page Fault 처리 과정
 
-**fork() 최적화의 핵심**:
+Page Fault가 발생하면 CPU는 즉시 **Kernel Mode**로 전환됩니다.
 
-```c
-int x = 10;
+이후 운영체제가 다음 작업을 수행합니다.
+
+~~~
+1. Fault 주소 확인
+2. 접근이 합법적인지 검사
+3. 새로운 Physical Page 할당
+4. Page Table 업데이트
+5. 프로그램 실행 재개
+~~~
+
+만약 접근이 **허용되지 않은 메모리**라면 다음이 발생합니다.
+
+~~~
+Segmentation Fault (SIGSEGV)
+~~~
+
+예를 들어 다음 코드입니다.
+
+~~~
+int *ptr = NULL;
+*ptr = 1;
+~~~
+
+이 경우 프로그램은 다음과 같이 종료됩니다.
+
+~~~
+Segmentation fault (core dumped)
+~~~
+
+---
+
+## Demand Paging
+
+Demand Paging은 **페이지가 실제로 필요할 때만 메모리를 할당하는 방식**입니다.
+
+즉 메모리 할당 흐름은 다음과 같습니다.
+
+~~~
+malloc()
+  ↓
+Virtual Address Space 예약
+  ↓
+(아직 Physical Memory 없음)
+  ↓
+첫 접근
+  ↓
+Page Fault
+  ↓
+Physical Page 할당
+~~~
+
+이 방식의 장점은 다음과 같습니다.
+
+- 메모리 낭비 감소
+- 프로그램 시작 속도 증가
+- 매우 큰 메모리 공간 사용 가능
+
+---
+
+## Page Fault 예시 실험
+
+다음 프로그램을 실행해봅시다.
+
+~~~
+#include <stdlib.h>
+
+int main() {
+    char *p = malloc(1024 * 1024 * 1024); // 1GB
+
+    for (size_t i = 0; i < 1024 * 1024 * 1024; i += 4096) {
+        p[i] = 1;
+    }
+
+    return 0;
+}
+~~~
+
+이 코드는 **페이지 단위(4KB)** 로 메모리를 접근합니다.
+
+그래서 실행 중에 다음과 같은 일이 반복적으로 발생합니다.
+
+~~~
+page access
+   ↓
+page fault
+   ↓
+physical page allocation
+~~~
+
+즉 프로그램이 실행되면서 **점진적으로 RAM이 할당됩니다.**
+
+---
+
+하지만 여기서 또 흥미로운 메커니즘이 등장합니다.
+
+> `fork()`는 어떻게 그렇게 빠르게 동작할까요?
+
+프로세스를 복제하려면 **전체 메모리를 복사해야 할 것처럼 보입니다.**
+
+하지만 실제로는 그렇지 않습니다.
+
+그 비밀이 바로 **Copy-on-Write (COW)** 입니다.
+
+바로 밑에서 **fork()가 빠른 이유인 Copy-on-Write**를 살펴보겠습니다.
+
+---
+
+## Copy-on-Write (COW)
+
+앞에서 이런 질문을 던졌습니다.
+
+> `fork()`는 어떻게 그렇게 빠를까요?
+
+`fork()`는 **부모 프로세스를 그대로 복제**하는 시스템 콜입니다.
+
+하지만 만약 부모 프로세스가 **1GB 메모리**를 사용 중이라면 어떻게 될까요?
+
+~~~
+fork()
+ → 1GB 메모리 복사
+~~~
+
+이 방식이라면 `fork()`는 **매우 느려야 합니다.**
+
+하지만 실제로는 **거의 즉시 반환됩니다.**
+
+그 이유가 바로 **Copy-on-Write (COW)** 입니다.
+
+---
+
+## Copy-on-Write의 핵심 아이디어
+
+`fork()`가 호출되면 **메모리를 바로 복사하지 않습니다.**
+
+대신 다음과 같은 일이 발생합니다.
+
+~~~
+부모 Page Table
+        ↓
+자식 Page Table 생성
+        ↓
+둘 다 같은 Physical Memory를 가리킴
+        ↓
+페이지를 Read-Only로 표시
+~~~
+
+즉 부모와 자식 프로세스는 **같은 물리 메모리를 공유**합니다.
+
+~~~
+Process A (parent)
+Virtual 0x1000 ─┐
+                ├── Physical Page
+Process B (child)
+Virtual 0x1000 ─┘
+~~~
+
+이 상태에서는 **메모리 복사가 전혀 발생하지 않습니다.**
+
+---
+
+## 언제 복사가 일어날까?
+
+복사는 **쓰기(write)** 가 발생할 때만 일어납니다.
+
+예를 들어 다음 코드입니다.
+
+~~~
+int *p = malloc(sizeof(int));
+*p = 10;
 
 pid_t pid = fork();
-// → 메모리 복사 안 함!
-// → 부모와 자식이 같은 물리 페이지 공유
-// → Page Table에 "Read-Only" 마킹
 
 if (pid == 0) {
-    // 자식
-    x = 20;  ← Page Fault! (Write to Read-Only)
-    // → 이제서야 페이지 복사
-    // → 자식만 새 물리 페이지 할당
-    // → x 값 변경
+    *p = 20;  // 자식이 쓰기
 }
-else {
-    // 부모
-    printf("%d\n", x);  // 여전히 10
-    // → Page Fault 안 남 (Read-Only 읽기는 OK)
+~~~
+
+이때 내부적으로 발생하는 흐름은 다음과 같습니다.
+
+~~~
+fork()
+ ↓
+부모와 자식이 같은 Physical Page 공유
+ ↓
+자식이 *p = 20 실행
+ ↓
+Write 시도 → Read-Only 페이지
+ ↓
+Page Fault 발생
+ ↓
+Kernel이 새로운 Physical Page 할당
+ ↓
+기존 데이터 복사
+ ↓
+자식 Page Table 업데이트
+~~~
+
+결과적으로 메모리는 다음과 같이 분리됩니다.
+
+~~~
+Before Write (Shared)
+
+Parent ─┐
+        ├── Physical Page (10)
+Child ──┘
+
+
+After Write (Copy)
+
+Parent ── Physical Page (10)
+
+Child  ── Physical Page (20)
+~~~
+
+이것이 바로 **Copy-on-Write** 입니다.
+
+---
+
+## Copy-on-Write의 장점
+
+이 방식은 운영체제에서 매우 중요한 최적화입니다.
+
+- `fork()`가 매우 빠름
+- 불필요한 메모리 복사 제거
+- 메모리 사용량 감소
+
+특히 다음과 같은 경우에 효과적입니다.
+
+~~~
+fork()
+ → exec()
+~~~
+
+Shell에서 명령어를 실행할 때 항상 등장하는 패턴입니다.
+
+예를 들어 다음과 같습니다.
+
+~~~
+pid = fork();
+
+if (pid == 0) {
+    execvp("ls", args);
 }
-```
+~~~
+
+여기서 `exec()`가 호출되면 **프로세스 메모리가 완전히 교체**됩니다.
+
+따라서 `fork()` 직후 메모리를 복사하는 것은 **완전히 낭비**입니다.
+
+Copy-on-Write 덕분에 Linux는 이 문제를 해결합니다.
 
 ---
 
-### COW 상세 동작
+## COW와 Page Fault
 
-```
-Initial (fork 직후):
-Parent Page Table:        Child Page Table:
-VA 0x1000 → PA 0x5000    VA 0x1000 → PA 0x5000
-          (R/O)                    (R/O)
-          ↓                        ↓
-    Same Physical Page! (0x5000)
-    값: 10
+여기서 중요한 사실이 하나 있습니다.
 
-Child writes x = 20:
-1. Write to Read-Only → Page Fault!
-2. Kernel: "아, COW구나"
-3. 새 물리 페이지 할당 (0x8000)
-4. 기존 페이지 내용 복사 (10 → new page)
-5. Child Page Table 업데이트:
-   VA 0x1000 → PA 0x8000 (R/W)
-6. 새 페이지에 20 쓰기
+**Copy-on-Write도 Page Fault를 사용합니다.**
 
-After:
-Parent: VA 0x1000 → PA 0x5000 (값: 10)
-Child:  VA 0x1000 → PA 0x8000 (값: 20)
-```
+흐름은 다음과 같습니다.
 
-**이점**:
-```
-fork() + exec() 패턴:
-→ exec()가 메모리 덮어쓰기
-→ 복사할 필요 없음!
-→ COW 덕분에 빠른 fork!
-```
+~~~
+Write to shared page
+        ↓
+Page Fault 발생
+        ↓
+Kernel이 새 페이지 할당
+        ↓
+기존 페이지 복사
+        ↓
+Page Table 업데이트
+~~~
+
+즉 Page Fault는 단순히 **메모리 오류 처리**가 아니라
+
+- Demand Paging
+- Copy-on-Write
+- Memory Mapping
+
+같은 **가상 메모리 핵심 기능의 기반**이 됩니다.
 
 ---
 
-### Redis의 COW 활용
+그리고 이제 마지막 퍼즐이 남았습니다.
 
-```c
-// Redis BGSAVE
-int bgsave() {
-    pid_t pid = fork();
-    // → COW: 메모리 공유 (빠름!)
-    
-    if (pid == 0) {
-        // 자식: 데이터 디스크 저장 (느림)
-        save_to_disk();  // Read-only 접근
-        exit(0);
-    }
-    
-    // 부모: 계속 요청 처리 (쓰기 가능)
-    // → 쓸 때만 COW로 복사
-    // → 빠른 응답!
+지금까지 우리는 이런 시스템 콜을 여러 번 봤습니다.
+
+~~~
+mmap()
+~~~
+
+Shared Memory에서도 등장했고, Virtual Memory에서도 계속 나타납니다.
+
+그렇다면 다음 질문이 자연스럽게 등장합니다.
+
+> `mmap()`은 도대체 무엇을 하는 시스템 콜일까요?
+
+----
+
+## Copy-on-Write (COW)
+
+앞에서 이런 질문을 던졌습니다.
+
+> `fork()`는 어떻게 그렇게 빠를까요?
+
+`fork()`는 **부모 프로세스를 그대로 복제**하는 시스템 콜입니다.
+
+하지만 만약 부모 프로세스가 **1GB 메모리**를 사용 중이라면 어떻게 될까요?
+
+~~~
+fork()
+ → 1GB 메모리 복사
+~~~
+
+이 방식이라면 `fork()`는 **매우 느려야 합니다.**
+
+하지만 실제로는 **거의 즉시 반환됩니다.**
+
+그 이유가 바로 **Copy-on-Write (COW)** 입니다.
+
+---
+
+## Copy-on-Write의 핵심 아이디어
+
+`fork()`가 호출되면 **메모리를 바로 복사하지 않습니다.**
+
+대신 다음과 같은 일이 발생합니다.
+
+~~~
+부모 Page Table
+        ↓
+자식 Page Table 생성
+        ↓
+둘 다 같은 Physical Memory를 가리킴
+        ↓
+페이지를 Read-Only로 표시
+~~~
+
+즉 부모와 자식 프로세스는 **같은 물리 메모리를 공유**합니다.
+
+~~~
+Process A (parent)
+Virtual 0x1000 ─┐
+                ├── Physical Page
+Process B (child)
+Virtual 0x1000 ─┘
+~~~
+
+이 상태에서는 **메모리 복사가 전혀 발생하지 않습니다.**
+
+---
+
+## 언제 복사가 일어날까?
+
+복사는 **쓰기(write)** 가 발생할 때만 일어납니다.
+
+예를 들어 다음 코드입니다.
+
+~~~
+int *p = malloc(sizeof(int));
+*p = 10;
+
+pid_t pid = fork();
+
+if (pid == 0) {
+    *p = 20;  // 자식이 쓰기
 }
-```
+~~~
+
+이때 내부적으로 발생하는 흐름은 다음과 같습니다.
+
+~~~
+fork()
+ ↓
+부모와 자식이 같은 Physical Page 공유
+ ↓
+자식이 *p = 20 실행
+ ↓
+Write 시도 → Read-Only 페이지
+ ↓
+Page Fault 발생
+ ↓
+Kernel이 새로운 Physical Page 할당
+ ↓
+기존 데이터 복사
+ ↓
+자식 Page Table 업데이트
+~~~
+
+결과적으로 메모리는 다음과 같이 분리됩니다.
+
+~~~
+Before Write (Shared)
+
+Parent ─┐
+        ├── Physical Page (10)
+Child ──┘
+
+
+After Write (Copy)
+
+Parent ── Physical Page (10)
+
+Child  ── Physical Page (20)
+~~~
+
+이것이 바로 **Copy-on-Write** 입니다.
 
 ---
 
-## Swapping
+## Copy-on-Write의 장점
 
-### Swap이란?
+이 방식은 운영체제에서 매우 중요한 최적화입니다.
 
-**메모리 확장**:
+- `fork()`가 매우 빠름
+- 불필요한 메모리 복사 제거
+- 메모리 사용량 감소
 
-```
-물리 RAM: 4GB
-Swap Partition: 8GB
-→ 총 가용 메모리: 12GB!
+특히 다음과 같은 경우에 효과적입니다.
 
-자주 안 쓰는 페이지 → Swap으로
-자주 쓰는 페이지 → RAM에
-```
+~~~
+fork()
+ → exec()
+~~~
 
----
+Shell에서 명령어를 실행할 때 항상 등장하는 패턴입니다.
 
-### Page Replacement 알고리즘
+예를 들어 다음과 같습니다.
 
-#### 1. FIFO (First-In-First-Out)
+~~~
+pid = fork();
 
-```
-페이지 참조: 1 2 3 4 1 2 5 1 2 3 4 5
-
-프레임 (3개):
-[1] [ ] [ ]
-[1] [2] [ ]
-[1] [2] [3]
-[4] [2] [3]  ← 1 out (FIFO)
-[4] [1] [3]  ← 2 out
-[4] [1] [2]  ← 3 out
-...
-
-Page Faults: 10회
-```
-
-**단점**: Belady's Anomaly (프레임 늘려도 Fault 증가 가능!)
-
----
-
-#### 2. LRU (Least Recently Used)
-
-```
-최근에 사용 안 한 페이지 교체
-
-페이지 참조: 1 2 3 4 1 2 5 1 2 3 4 5
-
-프레임 (3개):
-[1] [ ] [ ]   최근: 1
-[1] [2] [ ]   최근: 2 1
-[1] [2] [3]   최근: 3 2 1
-[4] [2] [3]   최근: 4 3 2 (1 out - LRU)
-[4] [1] [3]   최근: 1 4 3 (2 out - LRU)
-[2] [1] [3]   최근: 2 1 4 (4 out - LRU)
-...
-
-Page Faults: 8회 (FIFO보다 적음!)
-```
-
-**구현**: 
-- Accessed bit 활용
-- Timestamp 기록
-
----
-
-#### 3. Clock Algorithm (Second Chance)
-
-```
-원형 큐 + Reference bit
-
-   ┌─→ [1|1] → [2|0] → [3|1] → [4|1] ─┐
-   │    ↑                               │
-   └────────────────────────────────────┘
-       hand (pointer)
-
-교체 알고리즘:
-1. hand가 가리키는 페이지 확인
-2. Reference bit = 1? → 0으로 설정, hand++
-3. Reference bit = 0? → 교체!
-
-실제 Linux 구현과 유사!
-```
-
----
-
-### Linux Page Replacement
-
-**kswapd (Page Daemon)**:
-
-```c
-while (1) {
-    if (free_pages < pages_low) {
-        // 메모리 부족!
-        
-        // LRU 리스트에서 페이지 선택
-        page = select_victim_page();
-        
-        if (page->dirty) {
-            // Dirty page → 디스크 쓰기
-            write_to_swap(page);
-        }
-        
-        // 페이지 해제
-        free_page(page);
-    }
-    
-    sleep(1);  // 1초마다 체크
+if (pid == 0) {
+    execvp("ls", args);
 }
-```
+~~~
+
+여기서 `exec()`가 호출되면 **프로세스 메모리가 완전히 교체**됩니다.
+
+따라서 `fork()` 직후 메모리를 복사하는 것은 **완전히 낭비**입니다.
+
+Copy-on-Write 덕분에 Linux는 이 문제를 해결합니다.
 
 ---
 
-### Swap 성능
+## COW와 Page Fault
 
-**Swap vs RAM**:
+여기서 중요한 사실이 하나 있습니다.
 
-```
-RAM 접근: ~100ns
-SSD Swap: ~100,000ns (1,000배 느림!)
-HDD Swap: ~10,000,000ns (100,000배 느림!)
+**Copy-on-Write도 Page Fault를 사용합니다.**
 
-→ Swap은 최후의 수단!
-→ Thrashing 주의!
-```
+흐름은 다음과 같습니다.
 
-**Thrashing**:
-```
-메모리 부족 → Swap 과다 → 모든 프로세스 느려짐
-→ Page Fault → Swap In → Swap Out → Page Fault
-→ CPU는 놀고 Disk만 바쁨!
-```
+~~~
+Write to shared page
+        ↓
+Page Fault 발생
+        ↓
+Kernel이 새 페이지 할당
+        ↓
+기존 페이지 복사
+        ↓
+Page Table 업데이트
+~~~
 
----
+즉 Page Fault는 단순히 **메모리 오류 처리**가 아니라
 
-## Memory-Mapped I/O
+- Demand Paging
+- Copy-on-Write
+- Memory Mapping
 
-### mmap()
-
-```c
-#include <sys/mman.h>
-
-void *addr = mmap(
-    NULL,          // 커널이 주소 선택
-    length,        // 매핑할 크기
-    PROT_READ | PROT_WRITE,  // 읽기+쓰기
-    MAP_SHARED,    // 다른 프로세스와 공유
-    fd,            // 파일 디스크립터
-    offset         // 파일 내 위치
-);
-```
+같은 **가상 메모리 핵심 기능의 기반**이 됩니다.
 
 ---
 
-### 파일 매핑 예제
+그리고 이제 마지막 퍼즐이 남았습니다.
 
-```c
-int fd = open("bigfile.dat", O_RDWR);
-struct stat sb;
-fstat(fd, &sb);
+지금까지 우리는 이런 시스템 콜을 여러 번 봤습니다.
 
-// 파일을 메모리에 매핑
-char *data = mmap(NULL, sb.st_size,
-                  PROT_READ | PROT_WRITE,
-                  MAP_SHARED, fd, 0);
+~~~
+mmap()
+~~~
 
-// 파일을 배열처럼 접근!
-data[0] = 'A';  // 파일의 첫 바이트 변경
-data[100] = 'B';
+Shared Memory에서도 등장했고, Virtual Memory에서도 계속 나타납니다.
 
-// 변경 사항 디스크 동기화
-msync(data, sb.st_size, MS_SYNC);
+그렇다면 다음 질문이 자연스럽게 등장합니다.
 
-munmap(data, sb.st_size);
-close(fd);
-```
-
-**장점**:
-- read()/write() 불필요
-- 커널이 Page Fault로 자동 로드
-- Shared Memory로 사용 가능
+> `mmap()`은 도대체 무엇을 하는 시스템 콜일까요?
 
 ---
 
-### Shared Memory (IPC)
+## Memory Mapping과 `mmap()`
 
-```c
-// 프로세스 A
-int shm_fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
-ftruncate(shm_fd, 4096);
+지금까지 Virtual Memory를 설명하면서 여러 번 등장한 시스템 콜이 있습니다.
+
+~~~
+mmap()
+~~~
+
+이 함수는 Linux에서 **가장 중요한 메모리 시스템 콜 중 하나**입니다.
+
+간단히 말하면 `mmap()`은 다음과 같은 기능을 합니다.
+
+> **파일이나 장치를 프로세스의 가상 메모리 공간에 매핑(mapping)한다**
+
+즉 프로그램은 **파일을 읽는 대신 메모리를 직접 접근하듯 사용할 수 있습니다.**
+
+---
+
+## 전통적인 파일 읽기 방식
+
+일반적으로 파일을 읽을 때는 다음과 같은 방식이 사용됩니다.
+
+~~~
+open()
+read()
+write()
+~~~
+
+예를 들어 다음 코드입니다.
+
+~~~
+int fd = open("data.txt", O_RDONLY);
+
+char buffer[4096];
+read(fd, buffer, sizeof(buffer));
+~~~
+
+이 방식에서는 내부적으로 다음 과정이 발생합니다.
+
+~~~
+Disk
+ ↓
+Kernel Buffer
+ ↓
+User Buffer
+~~~
+
+즉 **데이터 복사가 두 번 발생합니다.**
+
+~~~
+Disk → Kernel
+Kernel → User
+~~~
+
+---
+
+## mmap() 방식
+
+`mmap()`을 사용하면 흐름이 달라집니다.
+
+~~~
+Disk File
+     ↓
+Page Cache
+     ↓
+Virtual Memory Mapping
+     ↓
+User Process
+~~~
+
+즉 프로그램은 파일을 다음처럼 사용할 수 있습니다.
+
+~~~
+int fd = open("data.txt", O_RDONLY);
+
+char *data = mmap(NULL, size,
+                  PROT_READ,
+                  MAP_PRIVATE,
+                  fd, 0);
+
+printf("%c\n", data[0]);
+~~~
+
+이 코드는 실제로는 **파일을 읽은 것이 아니라**
+
+> 파일을 **메모리에 매핑**한 것입니다.
+
+---
+
+## mmap()의 동작
+
+`mmap()`이 호출되면 운영체제는 다음 작업을 수행합니다.
+
+~~~
+1. Virtual Address Space 확보
+2. Page Table에 mapping 등록
+3. 실제 데이터는 아직 로드하지 않음
+~~~
+
+즉 이 시점에서는 **디스크 접근이 발생하지 않습니다.**
+
+데이터는 **처음 접근할 때** 로드됩니다.
+
+~~~
+data[0] 접근
+     ↓
+Page Fault 발생
+     ↓
+Kernel이 디스크에서 페이지 로드
+     ↓
+Page Table 업데이트
+~~~
+
+이 방식 역시 **Demand Paging**을 사용합니다.
+
+---
+
+## mmap()의 두 가지 종류
+
+`mmap()`에는 크게 두 가지 방식이 있습니다.
+
+### 1. File-backed Mapping
+
+파일을 메모리에 매핑합니다.
+
+~~~
+int fd = open("file.txt", O_RDONLY);
+
+mmap(NULL, size,
+     PROT_READ,
+     MAP_PRIVATE,
+     fd, 0);
+~~~
+
+특징
+
+- 파일 내용과 메모리가 연결됨
+- 파일을 메모리처럼 접근 가능
+- Page Cache 사용
+
+---
+
+### 2. Anonymous Mapping
+
+파일 없이 **순수 메모리 매핑**을 생성합니다.
+
+~~~
+void *ptr = mmap(NULL, size,
+                 PROT_READ | PROT_WRITE,
+                 MAP_SHARED | MAP_ANONYMOUS,
+                 -1, 0);
+~~~
+
+특징
+
+- 파일 없음
+- 프로세스 메모리로 사용
+- `malloc()` 내부에서도 사용됨
+
+---
+
+## mmap()과 Shared Memory
+
+여기서 **Part 3의 내용과 연결**됩니다.
+
+Shared Memory도 결국 내부적으로는 **mmap() 기반**입니다.
+
+예를 들어 POSIX Shared Memory는 다음과 같이 동작합니다.
+
+~~~
+int fd = shm_open("/myshm", O_CREAT | O_RDWR, 0666);
+ftruncate(fd, 4096);
 
 void *ptr = mmap(NULL, 4096,
                  PROT_READ | PROT_WRITE,
-                 MAP_SHARED, shm_fd, 0);
+                 MAP_SHARED,
+                 fd, 0);
+~~~
 
-strcpy(ptr, "Hello from A");
+즉 Shared Memory의 핵심은
 
-// 프로세스 B
-int shm_fd = shm_open("/myshm", O_RDWR, 0666);
-void *ptr = mmap(NULL, 4096,
-                 PROT_READ | PROT_WRITE,
-                 MAP_SHARED, shm_fd, 0);
+> **같은 Physical Page를 여러 프로세스의 Virtual Address에 매핑하는 것**
 
-printf("%s\n", (char*)ptr);  // "Hello from A"
-```
+입니다.
 
-**가장 빠른 IPC!** (Zero-copy)
+~~~
+Process A
+Virtual Address ─┐
+                 ├── Physical Page
+Process B
+Virtual Address ─┘
+~~~
+
+이 구조 덕분에 **Zero-copy IPC**가 가능해집니다.
+
+---
+
+## 메모리가 부족하면? (Swap)
+
+지금까지는 모든 페이지가 **RAM에 존재한다고 가정**했습니다.
+
+하지만 실제 시스템에서는 RAM이 부족해질 수 있습니다.  
+이때 운영체제는 일부 페이지를 **디스크로 이동**시켜 메모리를 확보합니다.
+
+이를 **Swap**이라고 합니다.
+
+~~~
+RAM
+ ↓
+사용하지 않는 페이지 선택
+ ↓
+Swap 영역(디스크)에 저장
+ ↓
+필요하면 다시 RAM으로 로드
+~~~
+
+예를 들어 다음과 같은 시스템이 있다고 가정해 보겠습니다.
+
+~~~
+RAM  : 4GB
+Swap : 8GB
+
+→ 총 가용 메모리: 12GB
+~~~
+
+하지만 디스크는 RAM보다 훨씬 느립니다.
+
+~~~
+RAM 접근 : ~100ns
+SSD 접근 : ~100,000ns
+HDD 접근 : ~10,000,000ns
+~~~
+
+그래서 Swap이 과도하게 발생하면 **Thrashing**이 발생할 수 있습니다.
+
+~~~
+Page Fault 증가
+→ Swap In / Swap Out 반복
+→ 시스템 성능 급격히 하락
+~~~
 
 ---
 
 ## OOM Killer
 
-### Out-of-Memory Killer
+만약 다음과 같은 상황이 발생하면 어떻게 될까요?
 
-**언제 발동?**
+~~~
+RAM 사용량 100%
+Swap 사용량 100%
+더 이상 내보낼 페이지 없음
+~~~
 
-```
-메모리 부족 상황:
-1. 모든 프로세스가 메모리 요구
-2. Swap도 꽉 참
-3. kswapd도 페이지 못 찾음
-4. → OOM Killer 호출!
-```
+Linux에서는 이 상황에서 **OOM Killer (Out-of-Memory Killer)**가 실행됩니다.
 
----
+~~~
+메모리를 많이 사용하는 프로세스 선택
+→ 해당 프로세스 강제 종료
+→ 메모리 확보
+~~~
 
-### 희생자 선택 알고리즘
+다음과 같은 로그로 확인할 수 있습니다.
 
-```c
-// OOM Score 계산
-int oom_score(process) {
-    int score = 0;
-    
-    // 메모리 사용량 (MB)
-    score += process.mem_usage / 1024;
-    
-    // 자식 프로세스 많으면 감점
-    score -= sqrt(process.num_children) * 10;
-    
-    // nice 값 고려
-    score += process.nice_value;
-    
-    // root 프로세스 보호
-    if (process.uid == 0) score /= 4;
-    
-    // 오래 실행된 프로세스 보호
-    score -= (current_time - process.start_time) / 100;
-    
-    return score;
-}
+~~~bash
+dmesg | grep -i oom
+~~~
 
-// 가장 높은 score → 희생!
-```
-
----
-
-### OOM 로그
-
-```bash
-$ dmesg | grep -i oom
-[12345.678] Out of memory: Kill process 9527 (chrome) score 987 or sacrifice child
-[12345.679] Killed process 9527 (chrome) total-vm:4125892kB, anon-rss:3835032kB, file-rss:0kB
-```
-
----
-
-### OOM 방지
-
-```bash
-# 1. Swap 늘리기
-sudo fallocate -l 4G /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-
-# 2. OOM Killer 조정
-echo 1000 > /proc/$PID/oom_score_adj  # 높을수록 우선 kill
-
-# 3. cgroup memory limit
-echo 2G > /sys/fs/cgroup/memory/myapp/memory.limit_in_bytes
-```
-
----
-
-## 실전 디버깅
-
-### 1. /proc/PID/maps
-
-```bash
-$ cat /proc/self/maps
-00400000-00401000 r-xp 00000000 08:01 123  /bin/cat
-00600000-00601000 r--p 00000000 08:01 123  /bin/cat
-00601000-00602000 rw-p 00001000 08:01 123  /bin/cat
-7f1234567000-7f1234789000 r-xp 00000000 08:01 456  /lib/libc.so
-7ffe12345000-7ffe12366000 rw-p 00000000 00:00 0  [stack]
-```
-
-**해석**:
-```
-주소 범위          권한   오프셋 디바이스 inode 경로
-00400000-00401000  r-xp   ...              /bin/cat (코드)
-00601000-00602000  rw-p   ...              /bin/cat (데이터)
-7ffe12345000-...   rw-p   ...              [stack]
-```
-
----
-
-### 2. Page Fault 측정
-
-```bash
-# Major/Minor Faults 확인
-$ /usr/bin/time -v ./program
-...
-    Major (requiring I/O) page faults: 123
-    Minor (reclaiming a frame) page faults: 45678
-```
-
-**해석**:
-- Minor Fault: 빠름 (~μs)
-- Major Fault: 느림 (~ms, Disk I/O)
-
----
-
-### 3. TLB Miss 측정
-
-```bash
-$ perf stat -e dTLB-loads,dTLB-load-misses,iTLB-loads,iTLB-load-misses ./program
-
-Performance counter stats:
-    123,456,789  dTLB-loads
-        12,345   dTLB-load-misses  # 0.01% miss rate
-    98,765,432   iTLB-loads
-         1,234   iTLB-load-misses  # 0.001% miss rate
-```
-
-**목표**: TLB miss rate < 1%
-
----
-
-### 4. Memory 사용량 모니터링
-
-```bash
-# 실시간 메모리 모니터링
-$ watch -n 1 'free -h && cat /proc/meminfo | grep -E "Active|Inactive|Dirty|Swap"'
-
-# 프로세스별 메모리
-$ ps aux --sort=-%mem | head
-
-# Swap 사용량
-$ swapon --show
-```
-
----
-
-## 성능 최적화
-
-### 1. Huge Pages
-
-**문제**:
-```
-일반 Page: 4KB
-대용량 DB: 100GB
-→ Page 수: 100GB / 4KB = 26,214,400 pages!
-→ Page Table 크기: 26M * 8B = 200MB
-→ TLB Miss 많음
-```
-
-**해결**: Huge Pages (2MB or 1GB)
-
-```bash
-# Transparent Huge Pages 활성화
-echo always > /sys/kernel/mm/transparent_hugepage/enabled
-
-# Static Huge Pages
-echo 1024 > /proc/sys/vm/nr_hugepages  # 1024 * 2MB = 2GB
-```
-
-**효과**:
-```
-2MB Huge Pages:
-→ Page 수: 100GB / 2MB = 51,200 pages
-→ Page Table: 51K * 8B = 400KB (500배 감소!)
-→ TLB Hit Rate 증가!
-```
-
----
-
-### 2. NUMA 고려
-
-```c
-// NUMA Node 확인
-$ numactl --hardware
-available: 2 nodes (0-1)
-node 0 cpus: 0 1 2 3
-node 0 size: 16GB
-node 1 cpus: 4 5 6 7
-node 1 size: 16GB
-
-// 특정 Node에 바인딩
-$ numactl --cpunodebind=0 --membind=0 ./program
-```
-
-**Local vs Remote 메모리**:
-```
-Local:  100ns
-Remote: 200ns (2배 느림!)
-```
-
----
-
-### 3. Cache-Friendly 코드
-
-```c
-// Bad: Column-major (Cache Miss 많음)
-for (int j = 0; j < N; j++) {
-    for (int i = 0; i < N; i++) {
-        sum += matrix[i][j];  // 비연속적 접근!
-    }
-}
-
-// Good: Row-major (Cache Hit 많음)
-for (int i = 0; i < N; i++) {
-    for (int j = 0; j < N; j++) {
-        sum += matrix[i][j];  // 연속적 접근!
-    }
-}
-```
-
-**성능 차이**: ~10배!
+이 메커니즘 덕분에 시스템 전체가 멈추는 대신  
+일부 프로세스를 종료하여 시스템을 유지할 수 있습니다.
 
 ---
 
 ## 정리
 
-### 핵심 개념
+지금까지 Virtual Memory의 핵심 메커니즘을 살펴봤습니다.
 
-**1. Virtual Memory**
-```
-✓ 프로세스마다 독립적인 주소 공간
-✓ 실제 RAM보다 큰 메모리 사용 가능
-✓ 보안 & 안정성
-```
+**1. Page Table**
 
-**2. Paging**
-```
-✓ Page (4KB) ↔ Frame 매핑
-✓ Page Table로 주소 변환
-✓ 4-level Page Table (x86-64)
-```
+~~~
+Virtual Address → Physical Address 변환
+~~~
 
-**3. TLB**
-```
-✓ 주소 변환 캐시
-✓ Page Walk (5번) → TLB Hit (0.5ns)
-✓ Hit Rate 99% 목표
-```
+**2. Demand Paging**
 
-**4. Page Fault**
-```
-✓ Demand Paging (Lazy Allocation)
-✓ Copy-on-Write (fork 최적화)
-✓ Swap (디스크를 메모리처럼)
-```
+~~~
+필요할 때만 실제 메모리 할당
+~~~
 
----
+**3. Page Fault**
 
-### Virtual Memory의 마법
+~~~
+메모리가 없을 때 Kernel이 처리
+~~~
 
-```c
-// 1. 독립적 주소 공간
-Process A: 0x1000 → Physical 0x5000
-Process B: 0x1000 → Physical 0x8000
+**4. Copy-on-Write**
 
-// 2. Lazy Allocation
-malloc(1GB);  // 즉시 리턴!
-ptr[0] = 42;  // 이제 할당 (4KB만)
+~~~
+fork() 시 메모리 복사 지연
+~~~
 
-// 3. Copy-on-Write
-fork();       // 메모리 복사 안 함!
-x = 20;       // 이제 복사 (쓸 때만)
+**5. Memory Mapping**
 
-// 4. Memory Overcommit
-4GB RAM + 8GB Swap = 12GB 가용!
-```
+~~~
+파일과 메모리를 연결
+~~~
+
+이 모든 기능은 결국 **Page Table과 MMU 위에서 동작**합니다.
 
 ---
 
-### 다음 편 예고
+## 다음 글 예고 (두둥~)
 
-**Part 5: Synchronization & Deadlock**  
-"Race Condition과의 전쟁"
+Shared Memory를 사용하면 여러 프로세스가 **같은 메모리를 동시에 접근**할 수 있습니다.
 
-Shared Memory를 사용하면서 발생하는 **동시성 문제**를 해결합니다.
+하지만 여기서 새로운 문제가 발생합니다.
 
-```c
-// 다음 편에서 다룰 내용
-int counter = 0;  // Shared Memory에 있는 변수
+~~~
+int counter = 0;  // Shared Memory
 
-// Thread 1
-counter++;  // Read-Modify-Write
+// Process A
+counter++;
 
-// Thread 2
-counter++;  // Race Condition!
+// Process B
+counter++;
+~~~
 
-// 결과: counter = 1 (기대: 2)
-// → Synchronization 필요!
-```
+두 프로세스가 동시에 실행되면 결과는 다음과 같습니다.
 
-**다룰 주제**:
+~~~
+Expected: counter = 2
+Actual  : counter = 1
+~~~
+
+이 문제를 **Race Condition**이라고 합니다.
+
+다음 글에서는 이러한 문제를 해결하는 **Synchronization 메커니즘**을 살펴봅니다.
+
+### 다음 주제
+
 - Critical Section
 - Mutex vs Semaphore vs Spinlock
 - Deadlock (4가지 조건)
-- Reader-Writer Problem
-- Producer-Consumer Problem
+- Reader–Writer Problem
+- Producer–Consumer Problem
 - Linux Kernel Synchronization
 
 ---
