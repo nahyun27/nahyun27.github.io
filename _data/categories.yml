@@ -1,0 +1,64 @@
+# Categories Metadata
+# Defines custom icons, descriptions, gradient colors, and series progress for categories.
+
+- name: Blockchain
+  slug: blockchain
+  description: 블록체인 및 암호화폐 핵심 기술
+  icon: fa-link
+  color: "#ffa726"
+  gradient: "linear-gradient(135deg, #ffa726, #f57c00)"
+
+- name: Development
+  slug: development
+  description: 웹 개발 및 일반적인 개발 지식
+  icon: fa-code
+  color: "#66bb6a"
+  gradient: "linear-gradient(135deg, #66bb6a, #388e3c)"
+
+- name: Operating System
+  slug: operating-system
+  description: 운영체제 심화 학습 시리즈
+  icon: fa-laptop-code
+  color: "#42a5f5"
+  gradient: "linear-gradient(135deg, #42a5f5, #1976d2)"
+  series: true
+  total: 10
+  current: 4
+
+- name: Paper Review
+  slug: paper-review
+  description: 컴퓨터 공학 주요 논문 리뷰
+  icon: fa-file-lines
+  color: "#ab47bc"
+  gradient: "linear-gradient(135deg, #ab47bc, #7b1fa2)"
+
+- name: Perspective
+  slug: perspective
+  description: 개발자로서의 시각과 회고
+  icon: fa-lightbulb
+  color: "#ec407a"
+  gradient: "linear-gradient(135deg, #ec407a, #c2185b)"
+
+- name: Projects
+  slug: projects
+  description: 사이드 프로젝트 및 개발 기록
+  icon: fa-rocket
+  color: "#26c6da"
+  gradient: "linear-gradient(135deg, #26c6da, #0097a7)"
+
+- name: Security
+  slug: security
+  description: 보안 연구 및 취약점 분석
+  icon: fa-shield-halved
+  color: "#ef5350"
+  gradient: "linear-gradient(135deg, #ef5350, #c62828)"
+
+- name: Quantum Computing
+  slug: quantum-computing
+  description: 양자컴퓨터 입문 시리즈
+  icon: fa-atom
+  color: "#8d6e63"
+  gradient: "linear-gradient(135deg, #8d6e63, #5d4037)"
+  series: true
+  total: 5
+  current: 3

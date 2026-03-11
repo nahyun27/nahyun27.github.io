@@ -26,15 +26,19 @@ layout: page
 
     {% comment %} Post node {% endcomment %}
     <div class="tl-post-node">
+      
+      {% comment %} Date on the left {% endcomment %}
+      <div class="tl-post-meta text-end pb-1">
+        {% assign ts = post.date | date: '%s' %}
+        <span class="tl-day" data-ts="{{ ts }}" data-df="DD">{{ post.date | date: '%d' }}</span>
+        <span class="tl-month" data-ts="{{ ts }}" data-df="{{ df_dayjs_m }}">{{ post.date | date: df_strftime_m }}</span>
+      </div>
+
       <div class="tl-node-circle tl-post-circle"></div>
+      
       <a class="tl-post-card"
          href="{{ post.url | relative_url }}"
          aria-label="{{ post.title | escape }}">
-        <div class="tl-post-meta">
-          {% assign ts = post.date | date: '%s' %}
-          <span class="tl-day" data-ts="{{ ts }}" data-df="DD">{{ post.date | date: '%d' }}</span>
-          <span class="tl-month" data-ts="{{ ts }}" data-df="{{ df_dayjs_m }}">{{ post.date | date: df_strftime_m }}</span>
-        </div>
         <span class="tl-post-title">{{ post.title }}</span>
       </a>
     </div>
