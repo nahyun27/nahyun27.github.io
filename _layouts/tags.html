@@ -1,0 +1,35 @@
+---
+layout: page
+# Tag Cloud layout — overrides jekyll-theme-chirpy gem
+---
+
+<div id="tags" class="tag-cloud-container" role="navigation" aria-label="Tags">
+  {% assign tags_list = '' | split: '' %}
+  {% for t in site.tags %}
+    {% assign tags_list = tags_list | push: t[0] %}
+  {% endfor %}
+
+  {% assign sorted_tags = tags_list | sort_natural %}
+
+  {% for t in sorted_tags %}
+    {% assign count = site.tags[t].size %}
+    <a
+      class="tag tag-cloud"
+      href="{{ t | slugify | url_encode | prepend: '/tags/' | append: '/' | relative_url }}"
+      data-count="{{ count }}"
+      aria-label="{{ t }}, {{ count }} post{% if count != 1 %}s{% endif %}"
+    >
+      {{- t -}}<span class="tag-count">{{ count }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.tag.tag-cloud[data-count]').forEach(function (el) {
+      if (parseInt(el.dataset.count, 10) >= 10) {
+        el.classList.add('tag-xl');
+      }
+    });
+  });
+</script>

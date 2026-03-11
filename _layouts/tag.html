@@ -1,0 +1,37 @@
+---
+layout: page
+# Tag Detail Page — overrides jekyll-theme-chirpy gem's tag.html
+---
+
+{% include lang.html %}
+
+<div id="page-tag">
+
+  <!-- Sleek gradient header banner -->
+  <div class="tag-detail-header">
+    <i class="fa fa-tag tag-detail-icon" aria-hidden="true"></i>
+    <h1 class="tag-detail-title">{{ page.title }}</h1>
+    <span class="tag-detail-count">
+      {{ page.posts | size }} post{% if page.posts.size != 1 %}s{% endif %}
+    </span>
+  </div>
+
+  <!-- Post list -->
+  <ul class="tag-posts-list content ps-0">
+    {% for post in page.posts %}
+      <li>
+        <div class="tag-post-item">
+          <a class="tag-post-link"
+             href="{{ post.url | relative_url }}"
+             title="{{ post.title | escape }}">
+            {{ post.title }}
+          </a>
+          <span class="tag-post-date">
+            {% include datetime.html date=post.date lang=lang %}
+          </span>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+
+</div>
