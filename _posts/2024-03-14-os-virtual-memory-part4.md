@@ -1388,21 +1388,21 @@ dmesg | grep -i oom
 
 ## 정리
 
-지금까지 Virtual Memory의 핵심 메커니즘을 살펴봤습니다.  
-**1. Page Table**
+지금까지 Virtual Memory의 핵심 메커니즘을 살펴봤습니다.
 
-Virtual Address → Physical Address 변환  
-**2. Demand Paging**
+**1. Page Table**  
+Virtual Address → Physical Address 변환
 
-필요할 때만 실제 메모리 할당  
-**3. Page Fault**
+**2. Demand Paging**  
+필요할 때만 실제 메모리 할당
 
-메모리가 없을 때 Kernel이 처리  
-**4. Copy-on-Write**
+**3. Page Fault**  
+메모리가 없을 때 Kernel이 처리
 
-fork() 시 메모리 복사 지연  
-**5. Memory Mapping**
+**4. Copy-on-Write**  
+fork() 시 메모리 복사 지연
 
+**5. Memory Mapping**  
 파일과 메모리를 연결
 
 
