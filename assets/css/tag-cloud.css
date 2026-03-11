@@ -754,59 +754,201 @@ html[data-mode="dark"] .tl-end-cap::before {
   .tl-end-cap::before { left: 14px; } /* 14+5 = 19. perfect. */
 }
 /* =============================================================
-   Categories Page — Advanced Data-Driven Layout
+   Categories Page — 1-Column Modern Stack Layout
    ============================================================= */
 
-.ctg-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+.ctg-container-single {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
-  margin-top: 1rem;
 }
 
-/* ── Category Card ───────────────────────────────────────────── */
-.ctg-card {
+/* ── 1. Overview / Stats Header ─────────────────────────────── */
+.ctg-overview {
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  padding: 1.25rem 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--main-border-color, #eaeaea);
+  display: flex;
+  justify-content: center;
+}
+
+.ctg-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-color, #333);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted-color, #777);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--main-border-color, #eaeaea);
+}
+
+/* ── 2. Controls (Search & Sort) ────────────────────────────── */
+.ctg-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ctg-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.ctg-search-wrapper i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+}
+
+.ctg-search {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border: 1px solid var(--main-border-color, #eaeaea);
+  border-radius: 30px;
+  background: var(--main-bg, #fafafa);
+  color: var(--text-color, #333);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.ctg-search:focus {
+  background: var(--card-bg, #ffffff);
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.2);
+}
+
+.ctg-sort-wrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ctg-sort-btn {
+  background: var(--main-bg, #fafafa);
+  border: 1px solid var(--main-border-color, #eaeaea);
+  color: var(--text-muted-color, #666);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ctg-sort-btn:hover {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-color, #333);
+}
+
+.ctg-sort-btn.active {
+  background: #0288d1;
+  color: #fff;
+  border-color: #0288d1;
+}
+
+/* ── 3. Category List & Cards ───────────────────────────────── */
+.ctg-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ctg-card-single {
   background: var(--card-bg, #ffffff);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+  border: 1px solid var(--main-border-color, #eaeaea);
+  border-left: 4px solid var(--category-color); /* Left accent bar */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--main-border-color, #eaeaea);
 }
 
-.ctg-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
-  border-color: var(--category-color);
+.ctg-card-single:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 }
 
-/* ── Category Header ─────────────────────────────────────────── */
-.ctg-header-link {
-  display: block;
-  padding: 1.25rem 1.25rem 1rem 1.25rem;
+.ctg-card-main {
+  padding: 1.25rem 1.5rem 0.5rem 1.5rem;
+}
+
+/* If no progress bar or subcategories, pad the bottom */
+.ctg-card-single:not(:has(.ctg-progress-wrapper)):not(:has(.ctg-sub-toggle-wrapper)) .ctg-card-main {
+  padding-bottom: 1.25rem;
+}
+
+.ctg-main-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none !important;
+  color: inherit !important;
+  gap: 1rem;
+}
+.ctg-main-link:hover {
   text-decoration: none !important;
   color: inherit !important;
 }
 
-.ctg-header-content {
+.ctg-card-left {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
 .ctg-icon-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   color: #fff;
   font-size: 1.4rem;
-  margin-right: 1rem;
+  margin-right: 1.25rem;
   flex-shrink: 0;
   box-shadow: 0 4px 12px rgba(var(--category-color-rgb, 0,0,0), 0.2);
+  transition: transform 0.3s ease;
+}
+
+.ctg-card-single:hover .ctg-icon-wrapper {
+  transform: scale(1.05) rotate(4deg);
 }
 
 .ctg-info {
@@ -815,69 +957,79 @@ html[data-mode="dark"] .tl-end-cap::before {
 }
 
 .ctg-name {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-color, #333);
-  margin: 0 0 0.2rem 0;
+  margin: 0 0 0.25rem 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: color 0.2s;
+}
+
+.ctg-card-single:hover .ctg-name {
+  color: var(--category-color);
 }
 
 .ctg-desc {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: var(--text-muted-color, #777);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 1.2rem;
 }
 
-.ctg-stats {
+.ctg-card-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ctg-stats-badge {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin-left: 0.75rem;
   background: rgba(0,0,0, 0.03);
-  padding: 0.4rem 0.6rem;
+  padding: 0.5rem 0.8rem;
   border-radius: 8px;
-  min-width: 50px;
+  min-width: 60px;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-.ctg-card:hover .ctg-stats {
+.ctg-card-single:hover .ctg-stats-badge {
   background: var(--category-gradient);
   color: #fff;
-  transition: background 0.3s ease;
 }
 
-.ctg-stats .post-count {
-  font-size: 1.1rem;
+.ctg-stats-badge .count {
+  font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
 }
 
-.ctg-stats .label {
-  font-size: 0.65rem;
+.ctg-stats-badge .label {
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.8;
   margin-top: 0.2rem;
 }
-.ctg-card:hover .ctg-stats .label {
+.ctg-card-single:hover .ctg-stats-badge .label {
   color: rgba(255,255,255, 0.9);
 }
 
-/* ── Series Progress Bar ─────────────────────────────────────── */
-.ctg-series-progress {
-  margin-top: 1.25rem;
+
+/* ── 4. Series Progress Bar ─────────────────────────────────── */
+.ctg-progress-wrapper {
+  margin: 0.75rem 1.5rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
-.progress-bar {
+.ctg-progress-bar {
   flex: 1;
   height: 6px;
   background: var(--main-border-color, #f0f0f0);
@@ -885,87 +1037,106 @@ html[data-mode="dark"] .tl-end-cap::before {
   overflow: hidden;
 }
 
-.progress-fill {
+.ctg-progress-fill {
   height: 100%;
   border-radius: 3px;
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.progress-text {
-  font-size: 0.75rem;
+.ctg-progress-text {
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-muted-color, #666);
   white-space: nowrap;
 }
 
-/* ── Sub-categories Section ──────────────────────────────────── */
-.ctg-sub-section {
-  border-top: 1px solid var(--main-border-color, #f0f0f0);
-  background: rgba(0, 0, 0, 0.015);
-  margin-top: auto; /* push to bottom of card */
+
+/* ── 5. Subcategories Section ───────────────────────────────── */
+.ctg-sub-toggle-wrapper {
+  padding: 0.5rem 1.5rem;
 }
 
-.ctg-sub-header {
+.ctg-collapse-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted-color, #888);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.ctg-collapse-btn:hover {
+  color: var(--category-color);
+}
+
+.ctg-chevron {
+  transition: transform 0.3s ease;
+  font-size: 0.75rem;
+}
+.ctg-collapse-btn.open .ctg-chevron {
+  transform: rotate(90deg);
+}
+
+/* Wrap around sub list with border */
+.ctg-sub-collapse {
+  margin: 0 1.5rem 1.25rem 1.5rem;
+}
+
+.ctg-sub-list {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--theme-border-color, rgba(0,0,0, 0.1));
+}
+
+.ctg-sub-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.6rem 1.25rem;
-}
-
-.ctg-sub-header .sub-label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted-color, #888);
-}
-
-.ctg-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 1.25rem 1rem 1.25rem;
-}
-
-.ctg-item {
-  margin-bottom: 0.4rem;
-}
-
-.ctg-item:last-child {
-  margin-bottom: 0;
-}
-
-.ctg-sub-link {
-  display: flex;
-  align-items: center;
   padding: 0.5rem 0.75rem;
-  border-left: 3px solid var(--category-color);
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 0 6px 6px 0;
+  background: rgba(0,0,0, 0.02);
+  border-radius: 6px;
   text-decoration: none !important;
-  color: var(--text-color, #444);
-  transition: all 0.2s;
+  color: var(--text-color, #444) !important;
+  transition: all 0.2s ease;
 }
 
-/* Subtle background tint based on category color using pseudo-element since we can't easily alpha-mix CSS variables globally without newer syntax */
-.ctg-sub-link {
+/* Dynamic hover background via pseudo element */
+.ctg-sub-item {
   position: relative;
   z-index: 1;
 }
-.ctg-sub-link::before {
+.ctg-sub-item::before {
   content: '';
   position: absolute;
   inset: 0;
   background: var(--category-color);
   opacity: 0.05;
   z-index: -1;
-  border-radius: 0 6px 6px 0;
+  border-radius: 6px;
   transition: opacity 0.2s;
 }
 
-.ctg-sub-link:hover {
-  padding-left: 1.25rem;
-  color: var(--category-color);
+.ctg-sub-item:hover {
+  padding-left: 1rem;
+  color: var(--category-color) !important;
+  text-decoration: none !important;
 }
-.ctg-sub-link:hover::before {
+
+.ctg-sub-item:hover::before {
   opacity: 0.12;
+}
+
+.ctg-sub-left {
+  display: flex;
+  align-items: center;
 }
 
 .sub-ctg-icon {
@@ -973,126 +1144,157 @@ html[data-mode="dark"] .tl-end-cap::before {
   font-size: 0.9rem;
 }
 
-.sub-ctg-name {
+.ctg-sub-name {
   font-size: 0.95rem;
   font-weight: 500;
-  flex: 1;
 }
 
-.sub-ctg-count {
+.ctg-sub-count {
   font-size: 0.75rem;
   color: var(--text-muted-color, #888);
-  font-weight: 500;
 }
-
-.ctg-sub-link:hover .sub-ctg-count {
+.ctg-sub-item:hover .ctg-sub-count {
   color: var(--category-color);
 }
 
-/* ── Trigger Icon ────────────────────────────────────────────── */
-.ctg-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 50%;
-  color: #888;
-  transition: background 0.2s, color 0.2s;
-  cursor: pointer;
-  text-decoration: none !important;
-}
 
-.ctg-trigger:hover {
-  background: rgba(0,0,0, 0.05);
-  color: var(--category-color);
-}
-
-.ctg-trigger i {
-  transition: transform 0.3s ease;
-}
-
-.ctg-trigger[aria-expanded="false"] i {
-  transform: rotate(-90deg);
-}
-
-/* ── Dark Mode ───────────────────────────────────────────────── */
-html[data-mode="dark"] .ctg-card {
+/* ── 6. Dark Mode ────────────────────────────────────────────── */
+html[data-mode="dark"] .ctg-overview,
+html[data-mode="dark"] .ctg-card-single {
   background: var(--card-bg, #1e1e1e);
   border-color: var(--main-border-color, #2a2a2c);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-html[data-mode="dark"] .ctg-card:hover {
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
-  border-color: var(--category-color);
+html[data-mode="dark"] .ctg-card-single:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border-color: var(--category-color); /* Note: top/right/bottom border */
 }
 
+html[data-mode="dark"] .stat-val,
 html[data-mode="dark"] .ctg-name { color: #eaeaea; }
-html[data-mode="dark"] .ctg-desc { color: #aaa; }
 
-html[data-mode="dark"] .ctg-stats {
+html[data-mode="dark"] .stat-label,
+html[data-mode="dark"] .ctg-desc,
+html[data-mode="dark"] .progress-text { color: #aaa; }
+
+html[data-mode="dark"] .stat-divider { background: var(--main-border-color, #2a2a2c); }
+
+html[data-mode="dark"] .ctg-search {
+  background: var(--main-bg, #141415);
+  border-color: var(--main-border-color, #2a2a2c);
+  color: #eaeaea;
+}
+html[data-mode="dark"] .ctg-search:focus {
+  background: var(--card-bg, #1e1e1e);
+}
+
+html[data-mode="dark"] .ctg-sort-btn {
+  background: var(--main-bg, #141415);
+  border-color: var(--main-border-color, #2a2a2c);
+  color: #aaa;
+}
+html[data-mode="dark"] .ctg-sort-btn:hover {
+  background: var(--card-bg, #1e1e1e);
+  color: #eaeaea;
+}
+html[data-mode="dark"] .ctg-sort-btn.active {
+  background: #0288d1;
+  color: #fff;
+  border-color: #0288d1;
+}
+
+html[data-mode="dark"] .ctg-stats-badge {
   background: rgba(255,255,255, 0.05);
   color: #ccc;
 }
-html[data-mode="dark"] .ctg-card:hover .ctg-stats {
+html[data-mode="dark"] .ctg-card-single:hover .ctg-stats-badge {
   color: #fff;
 }
 
-html[data-mode="dark"] .progress-bar { background: rgba(255,255,255, 0.1); }
-html[data-mode="dark"] .progress-text { color: #aaa; }
+html[data-mode="dark"] .ctg-progress-bar { background: rgba(255,255,255, 0.1); }
 
-html[data-mode="dark"] .ctg-sub-section {
-  border-top-color: var(--main-border-color, #2a2a2c);
-  background: rgba(0, 0, 0, 0.2);
+html[data-mode="dark"] .ctg-sub-list {
+  border-left-color: rgba(255,255,255, 0.1);
 }
 
-html[data-mode="dark"] .ctg-sub-link {
+html[data-mode="dark"] .ctg-sub-item {
   color: #ccc;
   background: transparent;
 }
-html[data-mode="dark"] .ctg-sub-link::before { opacity: 0.1; }
-html[data-mode="dark"] .ctg-sub-link:hover::before { opacity: 0.2; }
+html[data-mode="dark"] .ctg-sub-item::before { opacity: 0.1; }
+html[data-mode="dark"] .ctg-sub-item:hover::before { opacity: 0.2; }
+
 
 @media (prefers-color-scheme: dark) {
-  html:not([data-mode="light"]) .ctg-card {
+  html:not([data-mode="light"]) .ctg-overview,
+  html:not([data-mode="light"]) .ctg-card-single {
     background: var(--card-bg, #1e1e1e);
     border-color: var(--main-border-color, #2a2a2c);
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
   }
-  html:not([data-mode="light"]) .ctg-card:hover {
-    box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+  html:not([data-mode="light"]) .ctg-card-single:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
     border-color: var(--category-color);
   }
+  html:not([data-mode="light"]) .stat-val,
   html:not([data-mode="light"]) .ctg-name { color: #eaeaea; }
-  html:not([data-mode="light"]) .ctg-desc { color: #aaa; }
-  html:not([data-mode="light"]) .ctg-stats { background: rgba(255,255,255, 0.05); color: #ccc; }
-  html:not([data-mode="light"]) .ctg-card:hover .ctg-stats { color: #fff; }
-  html:not([data-mode="light"]) .progress-bar { background: rgba(255,255,255, 0.1); }
+  html:not([data-mode="light"]) .stat-label,
+  html:not([data-mode="light"]) .ctg-desc,
   html:not([data-mode="light"]) .progress-text { color: #aaa; }
-  html:not([data-mode="light"]) .ctg-sub-section { border-top-color: var(--main-border-color, #2a2a2c); background: rgba(0,0,0,0.2); }
-  html:not([data-mode="light"]) .ctg-sub-link { color: #ccc; background: transparent; }
-  html:not([data-mode="light"]) .ctg-sub-link::before { opacity: 0.1; }
-  html:not([data-mode="light"]) .ctg-sub-link:hover::before { opacity: 0.2; }
+  html:not([data-mode="light"]) .stat-divider { background: var(--main-border-color, #2a2a2c); }
+  html:not([data-mode="light"]) .ctg-search { background: var(--main-bg, #141415); border-color: var(--main-border-color, #2a2a2c); color: #eaeaea; }
+  html:not([data-mode="light"]) .ctg-search:focus { background: var(--card-bg, #1e1e1e); }
+  html:not([data-mode="light"]) .ctg-sort-btn { background: var(--main-bg, #141415); border-color: var(--main-border-color, #2a2a2c); color: #aaa; }
+  html:not([data-mode="light"]) .ctg-sort-btn:hover { background: var(--card-bg, #1e1e1e); color: #eaeaea; }
+  html:not([data-mode="light"]) .ctg-sort-btn.active { background: #0288d1; color: #fff; border-color: #0288d1; }
+  html:not([data-mode="light"]) .ctg-stats-badge { background: rgba(255,255,255, 0.05); color: #ccc; }
+  html:not([data-mode="light"]) .ctg-card-single:hover .ctg-stats-badge { color: #fff; }
+  html:not([data-mode="light"]) .ctg-progress-bar { background: rgba(255,255,255, 0.1); }
+  html:not([data-mode="light"]) .ctg-sub-list { border-left-color: rgba(255,255,255, 0.1); }
+  html:not([data-mode="light"]) .ctg-sub-item { color: #ccc; background: transparent; }
+  html:not([data-mode="light"]) .ctg-sub-item::before { opacity: 0.1; }
+  html:not([data-mode="light"]) .ctg-sub-item:hover::before { opacity: 0.2; }
 }
 
-/* ── Mobile ──────────────────────────────────────────────────── */
-@media (max-width: 576px) {
-  .ctg-grid {
-    grid-template-columns: 1fr;
+/* ── 7. Mobile Responsive ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .ctg-stats-row {
     gap: 1rem;
+    justify-content: space-between;
+    width: 100%;
   }
-  .ctg-header-link {
-    padding: 1rem;
+  .stat-val { font-size: 1.25rem; }
+  .stat-label { font-size: 0.7rem; }
+  
+  .ctg-controls {
+    flex-direction: column;
+    align-items: flex-start;
   }
+  .ctg-search-wrapper { max-width: 100%; width: 100%; }
+  
+  .ctg-main-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
   .ctg-icon-wrapper {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     font-size: 1.2rem;
-    margin-right: 0.75rem;
+    margin-right: 1rem;
   }
-  .ctg-name { font-size: 1.05rem; }
-  .ctg-stats { margin-left: 0.5rem; padding: 0.3rem 0.5rem; }
-  .ctg-sub-header { padding: 0.5rem 1rem; }
-  .ctg-list { padding: 0 1rem 0.75rem 1rem; }
+  .ctg-name { font-size: 1.15rem; }
+  
+  .ctg-card-right {
+    width: 100%;
+  }
+  .ctg-stats-badge {
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem 1rem;
+  }
+  .ctg-stats-badge .label { margin-top: 0; margin-left: 0.5rem; }
 }
