@@ -1,4 +1,5 @@
 ---
+layout: post
 title: "[운영체제 Deep Dive #3] Shared Memory는 왜 Pipe보다 빠를까? - Zero-copy IPC"
 date: 2024-03-13 16:00:00 +0900
 categories: [Operating System, IPC]

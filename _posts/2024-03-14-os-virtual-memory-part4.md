@@ -1,4 +1,5 @@
 ---
+layout: post
 title: "[운영체제 Deep Dive #4] 4GB RAM으로 16GB 쓰는 마법 - Virtual Memory의 모든 것"
 date: 2024-03-14 14:00:00 +0900
 categories: [Operating System, Memory]
