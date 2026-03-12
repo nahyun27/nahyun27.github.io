@@ -2,24 +2,37 @@
 
 :root {
   /* 라이트 모드 */
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e5e7eb;
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
-  --hover-bg: #f9fafb;
-  --active-bg: #eff6ff;
-  --active-border: #3b82f6;
+  --min-sidebar-bg: #ffffff;
+  --min-sidebar-border: #e5e7eb;
+  --min-text-primary: #1f2937;
+  --min-text-secondary: #6b7280;
+  --min-hover-bg: #f9fafb;
+  --min-active-bg: #eff6ff;
+  --min-active-border: #3b82f6;
 }
 
 [data-mode='dark'] {
-  /* 다크 모드 */
-  --sidebar-bg: #1f2937;
-  --sidebar-border: #374151;
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --hover-bg: #374151;
-  --active-bg: #1e3a5f;
-  --active-border: #3b82f6;
+  /* 다크 모드 (명시적 토글) */
+  --min-sidebar-bg: #1f2937;
+  --min-sidebar-border: #374151;
+  --min-text-primary: #f9fafb;
+  --min-text-secondary: #9ca3af;
+  --min-hover-bg: #374151;
+  --min-active-bg: #1e3a5f;
+  --min-active-border: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* 다크 모드 (OS 기본값, 토글 안했을 때 처리) */
+  html:not([data-mode='light']) {
+    --min-sidebar-bg: #1f2937;
+    --min-sidebar-border: #374151;
+    --min-text-primary: #f9fafb;
+    --min-text-secondary: #9ca3af;
+    --min-hover-bg: #374151;
+    --min-active-bg: #1e3a5f;
+    --min-active-border: #3b82f6;
+  }
 }
 
 .sidebar {
@@ -49,7 +62,7 @@
 /* 프로필 영역 */
 .profile {
   padding: 24px 0;
-  border-bottom: 1px solid var(--sidebar-border);
+  border-bottom: 1px solid var(--min-sidebar-border);
   margin-bottom: 24px;
   text-align: center;
 }
@@ -58,26 +71,26 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border: 2px solid var(--sidebar-border);
+  border: 2px solid var(--min-sidebar-border);
   transition: all 0.3s ease;
   object-fit: cover;
 }
 
 .profile-avatar:hover {
   transform: scale(1.05);
-  border-color: var(--active-border);
+  border-color: var(--min-active-border);
 }
 
 .profile-name {
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--min-text-primary);
   margin: 16px 0 4px;
 }
 
 .profile-role {
   font-size: 0.9rem;
-  color: var(--text-secondary);
+  color: var(--min-text-secondary);
   margin: 0;
 }
 
@@ -101,19 +114,19 @@
   gap: 12px;
   transition: all 0.2s ease;
   cursor: pointer;
-  color: var(--text-primary) !important;
+  color: var(--min-text-primary) !important;
   text-decoration: none;
 }
 
 .nav-item:hover {
-  background: var(--hover-bg);
+  background: var(--min-hover-bg);
   transform: translateX(2px);
-  color: var(--text-primary) !important;
+  color: var(--min-text-primary) !important;
 }
 
 .nav-item.active {
-  background: var(--active-bg);
-  border-left: 3px solid var(--active-border);
+  background: var(--min-active-bg);
+  border-left: 3px solid var(--min-active-border);
   padding-left: 13px;
   font-weight: 500;
 }
@@ -138,8 +151,8 @@
 
 .nav-item .count {
   font-size: 0.75rem;
-  color: var(--text-secondary);
-  background: var(--sidebar-border);
+  color: var(--min-text-secondary);
+  background: var(--min-sidebar-border);
   padding: 2px 8px;
   border-radius: 12px;
   margin-left: auto;
@@ -149,7 +162,7 @@
 .social-section {
   margin-top: auto;
   padding-top: 24px;
-  border-top: 1px solid var(--sidebar-border);
+  border-top: 1px solid var(--min-sidebar-border);
 }
 
 .social-grid {
@@ -161,13 +174,13 @@
 .social-btn {
   padding: 10px;
   border-radius: 6px;
-  background: var(--hover-bg);
-  border: 1px solid var(--sidebar-border);
+  background: var(--min-hover-bg);
+  border: 1px solid var(--min-sidebar-border);
   text-align: center;
   font-size: 0.85rem;
   transition: all 0.2s ease;
   cursor: pointer;
-  color: var(--text-primary) !important;
+  color: var(--min-text-primary) !important;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -175,10 +188,10 @@
 }
 
 .social-btn:hover {
-  background: var(--active-bg);
-  border-color: var(--active-border);
+  background: var(--min-active-bg);
+  border-color: var(--min-active-border);
   transform: translateY(-2px);
-  color: var(--text-primary) !important;
+  color: var(--min-text-primary) !important;
 }
 
 .social-btn .icon {
@@ -189,7 +202,7 @@
 
 .social-btn .label {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--min-text-secondary);
 }
 
 /* 다크모드/테마 토글 */
@@ -198,11 +211,11 @@
   width: 100%;
   padding: 10px;
   border-radius: 6px;
-  background: var(--hover-bg);
-  border: 1px solid var(--sidebar-border);
+  background: var(--min-hover-bg);
+  border: 1px solid var(--min-sidebar-border);
   text-align: center;
   font-size: 0.9rem;
-  color: var(--text-primary);
+  color: var(--min-text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,8 +225,8 @@
 }
 
 .theme-toggle:hover {
-  background: var(--active-bg);
-  border-color: var(--active-border);
+  background: var(--min-active-bg);
+  border-color: var(--min-active-border);
   transform: translateY(-2px);
 }
 
