@@ -25,7 +25,7 @@
       href="{{ '/' | relative_url }}"
       class="nav-item {% if page.layout == 'home' %}active{% endif %}"
     >
-      <span class="icon">🏠</span>
+      <span class="icon"><i class="fa-fw fas fa-home"></i></span>
       <span class="text"
         >{{ site.data.locales[include.lang].tabs.home | default: 'Home' }}</span
       >
@@ -33,23 +33,16 @@
 
     {% for tab in site.tabs %} {% capture tab_name %}{{ tab.url | split: '/'
     }}{% endcapture %} {% assign tab_icon = tab.icon %} {% if tab.url ==
-    '/categories/' %} {% assign tab_icon = '📁' %} {% assign tab_count =
-    site.categories.size %} {% elsif tab.url == '/tags/' %} {% assign tab_icon =
-    '🏷️' %} {% assign tab_count = site.tags.size %} {% elsif tab.url ==
-    '/archives/' %} {% assign tab_icon = '📚' %} {% assign tab_count =
-    site.posts.size %} {% elsif tab.url == '/about/' %} {% assign tab_icon =
-    '👤' %} {% else %}
-    <!-- Fallback if it's a fa-icon for custom tabs -->
-    {% if tab.icon contains 'fa-' %} {% assign tab_icon = '<i
-      class="' | append: tab.icon | append: '"
-    ></i
-    >' %} {% endif %} {% endif %}
+    '/categories/' %} {% assign tab_count = site.categories.size %} {% elsif
+    tab.url == '/tags/' %} {% assign tab_count = site.tags.size %} {% elsif
+    tab.url == '/archives/' %} {% assign tab_count = site.posts.size %} {% endif
+    %}
 
     <a
       href="{{ tab.url | relative_url }}"
       class="nav-item {% if tab.url == page.url %}active{% endif %}"
     >
-      <span class="icon">{{ tab_icon }}</span>
+      <span class="icon"><i class="fa-fw {{ tab.icon }}"></i></span>
       <span class="text"
         >{{ site.data.locales[include.lang].tabs.[tab_name] | default: tab.title
         | capitalize }}</span
@@ -62,7 +55,7 @@
   </nav>
 
   <!-- 소셜 -->
-  <div class="সামাজিক-section social-section">
+  <div class="social-section">
     <div class="social-grid">
       {% for entry in site.data.contact %} {%- assign url = null -%} {% case
       entry.type %} {% when 'github', 'twitter', 'linkedin' %} {%- unless
@@ -73,14 +66,7 @@
       split: '@' -%} {%- capture url -%}javascript:location.href = 'mailto:' +
       ['{{ email[0] }}','{{ email[1] }}'].join('@'){%- endcapture -%} {% when
       'rss' %} {% assign url = '/feed.xml' | relative_url %} {% else %} {%
-      assign url = entry.url %} {% endcase %} {% if url %} {% assign emoji_icon
-      = '🔗' %} {% if entry.type == 'github' %}{% assign emoji_icon = '🐈‍⬛' %}{%
-      endif %} {% if entry.type == 'linkedin' %}{% assign emoji_icon = '💼' %}{%
-      endif %} {% if entry.type == 'twitter' or entry.type == 'x' %}{% assign
-      emoji_icon = '🐦' %}{% endif %} {% if entry.type == 'email' %}{% assign
-      emoji_icon = '✉️' %}{% endif %} {% if entry.type == 'rss' %}{% assign
-      emoji_icon = '📡' %}{% endif %}
-
+      assign url = entry.url %} {% endcase %} {% if url %}
       <a
         href="{{ url }}"
         class="social-btn"
@@ -88,7 +74,9 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-        <span class="icon">{{ emoji_icon }}</span>
+        <span class="icon"
+          ><i class="{{ entry.icon | default: 'fas fa-link' }}"></i
+        ></span>
         <span class="label">{{ entry.type | capitalize }}</span>
       </a>
       {% endif %} {% endfor %}
@@ -98,7 +86,7 @@
   <!-- 다크모드 토글 -->
   {% unless site.theme_mode %}
   <button class="theme-toggle" id="mode-toggle" aria-label="Switch Mode">
-    <span class="icon">🌓</span>
+    <span class="icon"><i class="fas fa-adjust"></i></span>
     <span class="text">Theme</span>
   </button>
   {% endunless %}

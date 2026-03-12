@@ -22,11 +22,10 @@
   --active-border: #3b82f6;
 }
 
-/* 전체 사이드바 */
 .sidebar {
   width: 260px;
   height: 100vh;
-  padding: 32px 20px;
+  padding: 36px 28px;
   display: flex;
   flex-direction: column;
   background: var(--sidebar-bg);
@@ -42,6 +41,7 @@
 
 /* Override default Chirpy sidebar container constraints */
 #sidebar {
+  padding: 15px 20px;
   background: var(--sidebar-bg) !important;
   border-right: 1px solid var(--sidebar-border) !important;
 }
