@@ -1,0 +1,227 @@
+---
+layout: default
+# Home Page - Modern Dashboard Redesign
+---
+
+{% include lang.html %}
+
+<!-- Intersection Observer Animation Base -->
+<style>
+  .fade-in-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: opacity, transform;
+  }
+  .fade-in-section.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+
+<div class="home-container">
+
+  <!-- 1. Hero Section -->
+  <section class="hero fade-in-section">
+    <h1>👋 안녕하세요, 김나현입니다</h1>
+    <p>AI Security Researcher · 운영체제 Deep Dive</p>
+    <div class="hero-buttons">
+      <a href="#recent-posts" class="btn primary">Latest Posts</a>
+      <a href="{{ '/categories/' | relative_url }}" class="btn secondary">Categories</a>
+      <a href="{{ '/about/' | relative_url }}" class="btn secondary">About Me</a>
+    </div>
+  </section>
+
+  <!-- 2. Featured Post -->
+  {% assign featured_post = site.posts | where: "featured", "true" | first %}
+  {% unless featured_post %}
+    {% assign featured_post = site.posts.first %}
+  {% endunless %}
+
+  {% if featured_post %}
+    <section class="featured fade-in-section">
+      <div class="section-header">
+        <h2>📌 Featured</h2>
+      </div>
+      <article class="featured-post">
+        {% assign thumb_src = featured_post.image.path | default: featured_post.image %}
+        
+        <div class="thumb-wrapper">
+          {% if thumb_src %}
+            {% if featured_post.media_subpath %}
+              {% unless thumb_src contains '://' %}
+                {% assign thumb_src = featured_post.media_subpath | append: '/' | append: thumb_src | replace: '//', '/' %}
+              {% endunless %}
+            {% endif %}
+            <img src="{{ thumb_src | relative_url }}" alt="{{ featured_post.title }}">
+          {% else %}
+            <div class="placeholder-thumb" style="width: 100%; height: 100%;"></div>
+          {% endif %}
+        </div>
+
+        <div class="content">
+          <a href="{{ featured_post.url | relative_url }}" class="featured-title-link">
+            <h3>{{ featured_post.title }}</h3>
+          </a>
+          <div class="featured-desc">
+            <p>{% assign post = featured_post %}{% include post-summary.html %}</p>
+          </div>
+          <div class="meta">
+            <div class="meta-left">
+              {% if featured_post.categories.first %}
+                {% assign featured_ctg = featured_post.categories.first %}
+                {% assign ctg_meta = site.data.categories | where: "name", featured_ctg | first %}
+                <span class="category-badge" style="background: rgba(0,0,0,0.03); color: {{ ctg_meta.color | default: '#0288d1' }}; border: 1px solid {{ ctg_meta.color | default: '#ccc' }}">{{ featured_ctg }}</span>
+              {% endif %}
+            </div>
+            <span class="date">
+              <i class="far fa-calendar fa-fw me-1"></i>
+              {% include datetime.html date=featured_post.date lang=lang %}
+            </span>
+          </div>
+        </div>
+      </article>
+    </section>
+  {% endif %}
+
+  <!-- 3. Series in Progress -->
+  {% assign series_data = site.data.categories | where: "series", true %}
+  {% if series_data.size > 0 %}
+    <section class="series-progress fade-in-section">
+      <div class="section-header d-flex justify-content-between align-items-center">
+        <h2>📚 Series in Progress</h2>
+        <a href="{{ '/categories/' | relative_url }}" class="view-all">All Series →</a>
+      </div>
+      <div class="series-grid">
+        {% for s in series_data %}
+          {% capture _s_url %}/categories/{{ s.name | slugify | url_encode }}/{% endcapture %}
+          <a href="{{ _s_url | relative_url }}" class="series-card">
+            <h3 style="color: {{ s.color }}">{{ s.name }}</h3>
+            <div class="progress-bar">
+              {% assign percent = s.current | times: 100.0 | divided_by: s.total | round %}
+              <div class="fill" style="width: {{ percent }}%; background: {{ s.gradient }};"></div>
+            </div>
+            <p>{{ s.current }}/{{ s.total }} completed</p>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- 4. Recent Posts Grid (Paginator Mapping) -->
+  {% assign all_pinned = site.posts | where: 'pin', 'true' %}
+  {% assign all_normal = site.posts | where_exp: 'item', 'item.pin != true and item.hidden != true' %}
+  {% assign posts = '' | split: '' %}
+
+  {% assign visible_start = paginator.page | minus: 1 | times: paginator.per_page %}
+  {% assign visible_end = visible_start | plus: paginator.per_page %}
+
+  {% if all_pinned.size > visible_start %}
+    {% if all_pinned.size > visible_end %}
+      {% assign pinned_size = paginator.per_page %}
+    {% else %}
+      {% assign pinned_size = all_pinned.size | minus: visible_start %}
+    {% endif %}
+    {% for i in (visible_start..all_pinned.size) limit: pinned_size %}
+      {% assign posts = posts | push: all_pinned[i] %}
+    {% endfor %}
+  {% else %}
+    {% assign pinned_size = 0 %}
+  {% endif %}
+
+  {% assign normal_size = paginator.posts | size | minus: pinned_size %}
+  {% if normal_size > 0 %}
+    {% if pinned_size > 0 %}
+      {% assign normal_start = 0 %}
+    {% else %}
+      {% assign normal_start = visible_start | minus: all_pinned.size %}
+    {% endif %}
+    {% assign normal_end = normal_start | plus: normal_size | minus: 1 %}
+    {% for i in (normal_start..normal_end) %}
+      {% assign posts = posts | push: all_normal[i] %}
+    {% endfor %}
+  {% endif %}
+
+  <section id="recent-posts" class="recent-posts fade-in-section">
+    <div class="section-header">
+      <h2>✨ Recent Posts</h2>
+    </div>
+    
+    <div class="posts-grid">
+      {% for post in posts %}
+        <!-- Exclude rendering the featured post again visually if on first page (optional, but keep it simple for now) -->
+        <article class="post-card fade-in-section" style="transition-delay: {{ forloop.index0 | modulo: 3 | times: 100 }}ms;">
+          <a href="{{ post.url | relative_url }}" class="post-card-link">
+            {% assign card_thumb = post.image.path | default: post.image %}
+            <div class="thumb-wrapper">
+              {% if card_thumb %}
+                {% if post.media_subpath %}
+                  {% unless card_thumb contains '://' %}
+                    {% assign card_thumb = post.media_subpath | append: '/' | append: card_thumb | replace: '//', '/' %}
+                  {% endunless %}
+                {% endif %}
+                <img src="{{ card_thumb | relative_url }}" class="thumbnail" alt="{{ post.title }}">
+              {% else %}
+                <div class="thumbnail placeholder-thumb"></div>
+              {% endif %}
+            </div>
+            
+            <div class="content">
+              <h3 class="title">{{ post.title }}</h3>
+              <div class="description">
+                <p>{% include post-summary.html %}</p>
+              </div>
+              <div class="meta">
+                <div class="meta-left">
+                  {% if post.categories.first %}
+                    {% assign cat_name = post.categories.first %}
+                    {% assign c_meta = site.data.categories | where: "name", cat_name | first %}
+                    <span class="category-badge" style="color: {{ c_meta.color | default: '#0288d1' }}; border: 1px solid {{ c_meta.color | default: '#0288d1' }}">{{ cat_name }}</span>
+                  {% endif %}
+                  {% if post.pin %}
+                    <span class="pin-badge" title="Pinned Post"><i class="fas fa-thumbtack fa-fw"></i></span>
+                  {% endif %}
+                </div>
+                <span class="date">
+                  <i class="far fa-calendar fa-fw me-1"></i>
+                  {% include datetime.html date=post.date lang=lang format="short" %}
+                </span>
+              </div>
+            </div>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+
+    <!-- Paginator -->
+    {% if paginator.total_pages > 1 %}
+      <div class="pt-4 mt-4 border-top">
+        {% include post-paginator.html %}
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const observerOptions = {
+    root: null,
+    rootMargin: '0px 0px -50px 0px',
+    threshold: 0.1
+  };
+  
+  const observer = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.fade-in-section').forEach(el => {
+    observer.observe(el);
+  });
+});
+</script>
