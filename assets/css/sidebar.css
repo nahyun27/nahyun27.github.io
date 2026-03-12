@@ -1,0 +1,230 @@
+/* Sidebar Minimal Redesign */
+
+:root {
+  /* 라이트 모드 */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e5e7eb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --hover-bg: #f9fafb;
+  --active-bg: #eff6ff;
+  --active-border: #3b82f6;
+}
+
+[data-mode='dark'] {
+  /* 다크 모드 */
+  --sidebar-bg: #1f2937;
+  --sidebar-border: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --hover-bg: #374151;
+  --active-bg: #1e3a5f;
+  --active-border: #3b82f6;
+}
+
+/* 전체 사이드바 */
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  padding: 32px 20px;
+  display: flex;
+  flex-direction: column;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  color: var(--text-primary);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+/* Override default Chirpy sidebar container constraints */
+#sidebar {
+  background: var(--sidebar-bg) !important;
+  border-right: 1px solid var(--sidebar-border) !important;
+}
+
+/* 프로필 영역 */
+.profile {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--sidebar-border);
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-border);
+  transition: all 0.3s ease;
+  object-fit: cover;
+}
+
+.profile-avatar:hover {
+  transform: scale(1.05);
+  border-color: var(--active-border);
+}
+
+.profile-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 16px 0 4px;
+}
+
+.profile-role {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* 네비게이션 메뉴 */
+.nav-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-menu a {
+  text-decoration: none !important;
+}
+
+.nav-item {
+  padding: 10px 16px;
+  margin: 2px 0;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  color: var(--text-primary) !important;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: var(--hover-bg);
+  transform: translateX(2px);
+  color: var(--text-primary) !important;
+}
+
+.nav-item.active {
+  background: var(--active-bg);
+  border-left: 3px solid var(--active-border);
+  padding-left: 13px;
+  font-weight: 500;
+}
+
+.nav-item .icon {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+}
+
+.nav-item:hover .icon {
+  opacity: 1;
+}
+
+.nav-item .text {
+  flex-grow: 1;
+  font-size: 0.95rem;
+}
+
+.nav-item .count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--sidebar-border);
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: auto;
+}
+
+/* 소셜 링크 */
+.social-section {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.social-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.social-btn {
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--hover-bg);
+  border: 1px solid var(--sidebar-border);
+  text-align: center;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  color: var(--text-primary) !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none !important;
+}
+
+.social-btn:hover {
+  background: var(--active-bg);
+  border-color: var(--active-border);
+  transform: translateY(-2px);
+  color: var(--text-primary) !important;
+}
+
+.social-btn .icon {
+  font-size: 1.2rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.social-btn .label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* 다크모드/테마 토글 */
+.theme-toggle {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  background: var(--hover-bg);
+  border: 1px solid var(--sidebar-border);
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--active-bg);
+  border-color: var(--active-border);
+  transform: translateY(-2px);
+}
+
+/* 모바일 분기 (Chirpy 모바일 처리 오버라이드) */
+@media (max-width: 849px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+  }
+  .sidebar-display .sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+  }
+}

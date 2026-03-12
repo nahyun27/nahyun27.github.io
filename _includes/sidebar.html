@@ -1,0 +1,105 @@
+<!-- The Side Bar -->
+<aside aria-label="Sidebar" id="sidebar" class="sidebar">
+  <!-- 프로필 -->
+  <div class="profile">
+    <a href="{{ '/' | relative_url }}">
+      {%- if site.avatar != empty and site.avatar -%} {%- capture avatar_url -%}
+      {% include media-url.html src=site.avatar %} {%- endcapture -%}
+      <img
+        class="profile-avatar"
+        src="{{- avatar_url -}}"
+        alt="{{ site.title }}"
+        onerror="this.style.display = 'none'"
+      />
+      {%- endif -%}
+    </a>
+    <a href="{{ '/' | relative_url }}" style="text-decoration: none">
+      <h3 class="profile-name">{{ site.title }}</h3>
+    </a>
+    <p class="profile-role">{{ site.tagline }}</p>
+  </div>
+
+  <!-- 네비게이션 -->
+  <nav class="nav-menu">
+    <a
+      href="{{ '/' | relative_url }}"
+      class="nav-item {% if page.layout == 'home' %}active{% endif %}"
+    >
+      <span class="icon">🏠</span>
+      <span class="text"
+        >{{ site.data.locales[include.lang].tabs.home | default: 'Home' }}</span
+      >
+    </a>
+
+    {% for tab in site.tabs %} {% capture tab_name %}{{ tab.url | split: '/'
+    }}{% endcapture %} {% assign tab_icon = tab.icon %} {% if tab.url ==
+    '/categories/' %} {% assign tab_icon = '📁' %} {% assign tab_count =
+    site.categories.size %} {% elsif tab.url == '/tags/' %} {% assign tab_icon =
+    '🏷️' %} {% assign tab_count = site.tags.size %} {% elsif tab.url ==
+    '/archives/' %} {% assign tab_icon = '📚' %} {% assign tab_count =
+    site.posts.size %} {% elsif tab.url == '/about/' %} {% assign tab_icon =
+    '👤' %} {% else %}
+    <!-- Fallback if it's a fa-icon for custom tabs -->
+    {% if tab.icon contains 'fa-' %} {% assign tab_icon = '<i
+      class="' | append: tab.icon | append: '"
+    ></i
+    >' %} {% endif %} {% endif %}
+
+    <a
+      href="{{ tab.url | relative_url }}"
+      class="nav-item {% if tab.url == page.url %}active{% endif %}"
+    >
+      <span class="icon">{{ tab_icon }}</span>
+      <span class="text"
+        >{{ site.data.locales[include.lang].tabs.[tab_name] | default: tab.title
+        | capitalize }}</span
+      >
+      {% if tab_count %}
+      <span class="count">{{ tab_count }}</span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </nav>
+
+  <!-- 소셜 -->
+  <div class="সামাজিক-section social-section">
+    <div class="social-grid">
+      {% for entry in site.data.contact %} {%- assign url = null -%} {% case
+      entry.type %} {% when 'github', 'twitter', 'linkedin' %} {%- unless
+      site[entry.type].username -%} {%- continue -%} {%- endunless -%} {%-
+      capture url -%}https://{{ entry.type }}.com/{{ site[entry.type].username
+      }}{%- endcapture -%} {% when 'email' %} {%- unless site.social.email -%}
+      {%- continue -%} {%- endunless -%} {%- assign email = site.social.email |
+      split: '@' -%} {%- capture url -%}javascript:location.href = 'mailto:' +
+      ['{{ email[0] }}','{{ email[1] }}'].join('@'){%- endcapture -%} {% when
+      'rss' %} {% assign url = '/feed.xml' | relative_url %} {% else %} {%
+      assign url = entry.url %} {% endcase %} {% if url %} {% assign emoji_icon
+      = '🔗' %} {% if entry.type == 'github' %}{% assign emoji_icon = '🐈‍⬛' %}{%
+      endif %} {% if entry.type == 'linkedin' %}{% assign emoji_icon = '💼' %}{%
+      endif %} {% if entry.type == 'twitter' or entry.type == 'x' %}{% assign
+      emoji_icon = '🐦' %}{% endif %} {% if entry.type == 'email' %}{% assign
+      emoji_icon = '✉️' %}{% endif %} {% if entry.type == 'rss' %}{% assign
+      emoji_icon = '📡' %}{% endif %}
+
+      <a
+        href="{{ url }}"
+        class="social-btn"
+        aria-label="{{ entry.type }}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="icon">{{ emoji_icon }}</span>
+        <span class="label">{{ entry.type | capitalize }}</span>
+      </a>
+      {% endif %} {% endfor %}
+    </div>
+  </div>
+
+  <!-- 다크모드 토글 -->
+  {% unless site.theme_mode %}
+  <button class="theme-toggle" id="mode-toggle" aria-label="Switch Mode">
+    <span class="icon">🌓</span>
+    <span class="text">Theme</span>
+  </button>
+  {% endunless %}
+</aside>
