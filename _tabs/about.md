@@ -73,7 +73,7 @@ order: 4
 
 #### 💭 Perspective
 
-- **[AI 시대, 개발자에게 필요한 것](https://nahyun27.github.io/posts/ai-era-developer-balance/)**  
+- **[AI 시대, 개발자에게 필요한 것](https://nahyun27.github.io/posts/ai-era-developer/)**  
   AI 도구 활용과 본질적 사고의 균형
 
 #### 🛠️ Development

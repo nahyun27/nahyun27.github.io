@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "AI 시대의 개발자 - Problem Solvers to Problem Definers"
-date: 2026-03-7 14:00:00 +0900
+date: 2026-03-10 14:00:00 +0900
 categories: [Perspective]
 tags: [ai, developer, career, future, programming, productivity]
 description: "AI가 코드를 작성하는 시대에 개발자의 역할은 어떻게 바뀌고 있을까. 개발자의 새로운 역할에 대한 개인적인 생각."
