@@ -1,16 +1,16 @@
 ---
 layout: post
-title: "AI 시대, 개발자에게 필요한 것"
+title: "AI 시대의 개발자 - Problem Solvers to Problem Definers"
 date: 2026-03-7 14:00:00 +0900
 categories: [Perspective]
-tags: [ai, career, future, developer, researcher]
-description: "AI 시대에 개발자는 무엇을 해야 할까."
+tags: [ai, developer, career, future, programming, productivity]
+description: "AI가 코드를 작성하는 시대에 개발자의 역할은 어떻게 바뀌고 있을까. 개발자의 새로운 역할에 대한 개인적인 생각."
 image:
   path: /assets/img/posts/ai-era/cover.png
   alt: AI Era for Developers
 ---
-# AI와 함께 일하는 개발자  
-## — 코드보다 더 중요한 것들
+
+# AI와 함께 일하는 개발자
 
 ## AI는 생각보다 훨씬 빠르게 발전하고 있다
 
@@ -44,22 +44,6 @@ AI는 다음과 같은 일들을 **놀라울 정도로 빠르게** 해낸다.
 - 블로그 글 구조화  
 - 디버깅 힌트  
 - 리팩토링
-
-예를 들어 이런 요청을 해보자.
-
-~~~python
-# GPT에게
-"React로 포트폴리오 사이트 만들어줘"
-~~~
-
-AI는 보통 이런 결과를 만든다.
-
-- 구조가 정리된 React 프로젝트
-- 반응형 레이아웃
-- 깔끔한 컴포넌트 구조
-- 기본적인 스타일링
-
-**속도도 빠르고 품질도 나쁘지 않다.**
 
 솔직히 말하면,  
 단순 구현만 놓고 보면 **AI가 인간보다 빠를 때도 많다.**
