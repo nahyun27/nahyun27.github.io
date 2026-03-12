@@ -1146,14 +1146,14 @@ html[data-mode="dark"] .tl-end-cap::before {
 .home-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1rem 0;
+  padding: 0.5rem 0;
   display: flex;
   flex-direction: column;
-  gap: 3.5rem;
+  gap: 1rem;
 }
 
 .home-container h2 {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 1.5rem;
   color: var(--text-color, #333);
@@ -1177,7 +1177,7 @@ html[data-mode="dark"] .home-container h2 { color: #eaeaea; }
 /* ── Hero Section ── */
 .hero {
   text-align: center;
-  padding: 3rem 2rem;
+  padding: 2rem 1.5rem;
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   border-radius: 16px;
@@ -1194,6 +1194,7 @@ html[data-mode="dark"] .hero {
 .hero h1 {
   font-size: 2.2rem;
   font-weight: 800;
+  margin-top: 1rem;
   margin-bottom: 0.8rem;
   color: #fff !important;
   letter-spacing: -0.02em;
@@ -1299,9 +1300,10 @@ html[data-mode="dark"] .featured-post .placeholder-thumb {
   color: inherit !important;
 }
 .featured-post h3 {
+  margin-top: 0.7rem;
   font-size: 1.7rem;
   font-weight: 700;
-  margin-bottom: 1rem;
+  margin-bottom: 0.7rem;
   color: var(--text-color, #333);
   transition: color 0.2s;
 }
@@ -1363,11 +1365,11 @@ html[data-mode="dark"] .featured-desc p { color: #aaa; }
 .series-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.5rem;
+  gap: 2rem;
 }
 .series-card {
   background: var(--card-bg, #fff);
-  padding: 1.25rem 1.5rem;
+  padding: 0.8rem 1.2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   border: 1px solid var(--main-border-color, #eaeaea);
@@ -1387,8 +1389,9 @@ html[data-mode="dark"] .series-card {
 }
 .series-card h3 {
   font-size: 1.2rem;
+  margin-top: 0.7rem;
   font-weight: 700;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.7rem;
 }
 .series-card .progress-bar {
   height: 8px;
@@ -1476,6 +1479,7 @@ html[data-mode="dark"] .post-card .placeholder-thumb {
 .post-card .content {
   padding: 0.5rem 1.5rem 1.5rem 1.5rem;
   background: var(--card-bg, #fff);
+  margin-top:0.5rem;
   z-index: 1;
   display: flex;
   flex-direction: column;
