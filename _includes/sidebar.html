@@ -32,11 +32,13 @@
     </a>
 
     {% for tab in site.tabs %} {% capture tab_name %}{{ tab.url | split: '/'
-    }}{% endcapture %} {% assign tab_icon = tab.icon %} {% if tab.url ==
-    '/categories/' %} {% assign tab_count = site.categories.size %} {% elsif
-    tab.url == '/tags/' %} {% assign tab_count = site.tags.size %} {% elsif
-    tab.url == '/archives/' %} {% assign tab_count = site.posts.size %} {% endif
-    %}
+    }}{% endcapture %} {% assign tab_icon = tab.icon %}
+
+    <!-- Reset tab count so it doesn't leak from prior iterations -->
+    {% assign tab_count = nil %} {% if tab.url == '/categories/' %} {% assign
+    tab_count = site.categories.size %} {% elsif tab.url == '/tags/' %} {%
+    assign tab_count = site.tags.size %} {% elsif tab.url == '/archives/' %} {%
+    assign tab_count = site.posts.size %} {% endif %}
 
     <a
       href="{{ tab.url | relative_url }}"
