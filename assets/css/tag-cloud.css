@@ -1478,7 +1478,7 @@ html[data-mode='dark'] .featured-desc p {
 /* ── Series Progress ── */
 .series-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 2rem;
 }
 .series-card {
@@ -1599,7 +1599,7 @@ html[data-mode='dark'] .post-card .placeholder-thumb {
 .post-card .content {
   padding: 0.5rem 1.5rem 1.5rem 1.5rem;
   background: var(--card-bg, #fff);
-  margin-top: 0.5rem;
+  margin-top: 0;
   z-index: 1;
   display: flex;
   flex-direction: column;
@@ -1647,11 +1647,7 @@ html[data-mode='dark'] .post-card .description p {
   margin-top: auto;
 }
 
-@media (max-width: 576px) {
-  .posts-grid {
-    grid-template-columns: 1fr;
-  }
-}
+/* 576px 이하는 900px 미디어쿼리가 이미 처리함 */
 
 .sub-ctg-icon {
   margin-right: 0.5rem;
@@ -1871,5 +1867,99 @@ html[data-mode='dark'] .ctg-sub-item:hover::before {
   .ctg-stats-badge .label {
     margin-top: 0;
     margin-left: 0.5rem;
+  }
+}
+
+/* ── Post Card: Mobile Responsive Layout ── */
+
+/* 태블릿/중간 화면: 1열 + 가로 배치 (Featured 카드처럼) */
+/* 사이드바(260px) 포함 시 1200px 이하에서 카드가 1열로 전환됨 */
+@media (max-width: 1200px) {
+  .posts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 실제 flex 컨테이너: .post-card-link */
+  .post-card-link {
+    flex-direction: row !important;
+    align-items: stretch;
+    height: auto;
+    min-height: 140px;
+  }
+
+  .post-card .thumb-wrapper {
+    flex-shrink: 0;
+    width: 220px;
+    border-radius: 12px 0 0 12px;
+    overflow: hidden;
+  }
+
+  .post-card .thumbnail {
+    width: 220px;
+    height: 100%;
+    min-height: 140px;
+    border-radius: 0;
+    object-fit: cover;
+  }
+
+  .post-card .placeholder-thumb {
+    width: 220px;
+    height: 100%;
+    min-height: 140px;
+    border-radius: 0;
+  }
+
+  .post-card .content {
+    flex: 1;
+    padding: 16px 20px;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .post-card .title {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .post-card .description p {
+    font-size: 0.9rem;
+    -webkit-line-clamp: 2;
+    margin-bottom: 0.75rem;
+  }
+}
+
+/* 모바일: 썸네일 더 좁게 */
+@media (max-width: 480px) {
+  .post-card .thumb-wrapper {
+    width: 110px;
+    border-radius: 12px 0 0 12px;
+  }
+
+  .post-card .thumbnail,
+  .post-card .placeholder-thumb {
+    width: 110px;
+    min-height: 120px;
+  }
+
+  .post-card .content {
+    padding: 10px 14px;
+  }
+
+  .post-card .title {
+    font-size: 0.95rem;
+  }
+
+  .post-card .description p {
+    font-size: 0.82rem;
+    -webkit-line-clamp: 2;
+  }
+
+  .post-card .meta {
+    font-size: 0.72rem;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 }
