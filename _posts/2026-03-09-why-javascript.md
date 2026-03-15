@@ -3,7 +3,7 @@ layout: post
 title: "왜 웹은 자바스크립트로 만드나요?"
 date: 2026-03-09 12:00:00 +0900
 
-categories: [Web, Programming]
+categories: [Development, Programming]
 tags: [web, javascript, browser, frontend, backend, nodejs, why]
 
 image:

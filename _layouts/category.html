@@ -1,0 +1,49 @@
+---
+layout: page
+# Category Detail Page — overrides jekyll-theme-chirpy gem's category.html
+---
+
+{% include lang.html %} {% comment %} Find metadata for this category {%
+endcomment %} {% assign meta = nil %} {% for item in site.data.categories %} {%
+if item.name == page.title %} {% assign meta = item %} {% endif %} {% endfor %}
+{% assign ctg_color = meta.color | default: '#0288d1' %} {% assign ctg_gradient
+= meta.gradient | default: 'linear-gradient(135deg, #4fc3f7, #0288d1)' %} {%
+assign ctg_icon = meta.icon | default: 'fa-folder-open' %}
+
+<div id="page-category">
+  <!-- Gradient header banner -->
+  <div class="cat-detail-header" style="background: {{ ctg_gradient }};">
+    <div class="cat-detail-icon-wrap">
+      <i class="fas {{ ctg_icon }} cat-detail-icon"></i>
+    </div>
+    <div class="cat-detail-meta">
+      <h1 class="cat-detail-title">{{ page.title }}</h1>
+      {% if meta.description %}
+      <p class="cat-detail-desc">{{ meta.description }}</p>
+      {% endif %}
+    </div>
+    <span class="cat-detail-count">
+      {{ page.posts | size }} post{% if page.posts.size != 1 %}s{% endif %}
+    </span>
+  </div>
+
+  <!-- Post list -->
+  <ul class="cat-posts-list content ps-0">
+    {% for post in page.posts %}
+    <li>
+      <div class="cat-post-item">
+        <a
+          class="cat-post-link"
+          href="{{ post.url | relative_url }}"
+          title="{{ post.title | escape }}"
+        >
+          {{ post.title }}
+        </a>
+        <span class="cat-post-date">
+          {% include datetime.html date=post.date lang=lang %}
+        </span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

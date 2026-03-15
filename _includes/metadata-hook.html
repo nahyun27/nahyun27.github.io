@@ -2,7 +2,8 @@
 <link rel="stylesheet" href="{{ '/assets/css/sidebar.css' | relative_url }}" />
 
 {% if page.layout == 'home' or page.layout == 'tags' or page.layout == 'tag' or
-page.layout == 'archives' or page.layout == 'categories' %}
+page.layout == 'archives' or page.layout == 'categories' or page.layout ==
+'category' %}
 <link
   rel="stylesheet"
   href="{{ '/assets/css/tag-cloud.css' | relative_url }}"
@@ -11,9 +12,9 @@ page.layout == 'archives' or page.layout == 'categories' %}
 
 <!-- Homepage SEO -->
 {% if page.layout == 'home' or page.url == '/' %}
-<meta name="description" content="{{ site.description }}">
-<meta property="og:title" content="{{ site.title }}">
-<meta property="og:description" content="{{ site.description }}">
-<meta property="og:type" content="website">
-<meta property="og:url" content="{{ site.url }}">
+<meta name="description" content="{{ site.description }}" />
+<meta property="og:title" content="{{ site.title }}" />
+<meta property="og:description" content="{{ site.description }}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="{{ site.url }}" />
 {% endif %}

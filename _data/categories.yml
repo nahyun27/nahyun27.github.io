@@ -1,6 +1,13 @@
 # Categories Metadata
 # Defines custom icons, descriptions, gradient colors, and series progress for categories.
 
+- name: Algorithm
+  slug: algorithm
+  description: 알고리즘 심화 학습 및 문제 풀이 시리즈
+  icon: fa-diagram-project
+  color: "#26a69a"
+  gradient: "linear-gradient(135deg, #26a69a, #00796b)"
+
 - name: Blockchain
   slug: blockchain
   description: 블록체인 및 암호화폐 핵심 기술
