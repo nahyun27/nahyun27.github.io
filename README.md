@@ -9,15 +9,16 @@
 
 ## 🔥 Featured Series
 
-### 💻 운영체제 Deep Dive (진행 중 3/10)
+### 💻 운영체제 Deep Dive (진행 중 4/10)
 
 실제 Linux 커널 구현을 바탕으로 OS의 핵심 개념을 파헤치는 시리즈
 
 - **[Part 1: Process & Execution](https://nahyun27.github.io/posts/os-process-part1/)** - `ls`를 치면 무슨 일이 일어날까?
 - **[Part 2: IPC - Pipe](https://nahyun27.github.io/posts/os-ipc-pipe-part2/)** - `ls | grep .c`는 어떻게 동작할까?
 - **[Part 3: Shared Memory](https://nahyun27.github.io/posts/os-shared-memory-part3/)** - Zero Copy IPC, Shared Memory
-- [ ] Part 4: Synchronization & Deadlock
-- [ ] Part 5: File System Internals
+- **[Part 4: Virtual Memory](https://nahyun27.github.io/posts/os-virtual-memory-part4/)** - 페이지 테이블, 페이지 폴딩
+- [ ] Part 5: Synchronization & Deadlock
+- [ ] Part 6: File System Internals
 
 ### 🔮 양자컴퓨터 입문 (완결 ✅ 3/3)
 
@@ -26,6 +27,17 @@
 - **[Part 1: 큐비트가 뭐길래?](https://nahyun27.github.io/posts/quantum-computing-basics-part1/)** - 양자역학 기초
 - **[Part 2: 양자 알고리즘](https://nahyun27.github.io/posts/quantum-algorithms-part2/)** - Shor & Grover
 - **[Part 3: 양자 보안](https://nahyun27.github.io/posts/quantum-security-part3/)** - PQC vs QKD
+
+### 📈 알고리즘 Deep Dive (진행 중 4/?)
+
+그리디부터 고급 DP까지, 알고리즘 설계 패러다임을 문제 풀이와 함께 정리하는 시리즈
+
+- **[Part 1: 그리디](https://nahyun27.github.io/posts/greedy/)** - 로컬 최적이 글로벌 최적이 되는 조건
+- **[Part 2: 동적 프로그래밍](https://nahyun27.github.io/posts/dp/)** - 중복 계산을 없애는 방법
+- **[Part 3: 배낭 문제](https://nahyun27.github.io/posts/knapsack/)** - 0/1, 분할, 변형까지 완전 정복
+- **[Part 4: LIS](https://nahyun27.github.io/posts/lis/)** - O(N²)에서 O(N log N)으로
+- [ ] Part 5: 그래프 탐색 (DFS/BFS)
+- [ ] Part 6: 최단 경로
 
 ---
 
