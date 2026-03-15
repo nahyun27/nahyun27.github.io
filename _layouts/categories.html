@@ -3,48 +3,26 @@ layout: page
 # All the Categories of posts - 1-Column Modern Stack
 ---
 
-{% include lang.html %}
-
-{% assign HEAD_PREFIX = 'h_' %}
-{% assign LIST_PREFIX = 'l_' %}
-{% assign sort_categories = site.categories | sort %}
-
-{% comment %} ==========================================
-  1. Calculate Global Stats first
-========================================== {% endcomment %}
-{% assign top_categories_count = 0 %}
-{% assign sub_categories_count = 0 %}
-{% assign total_posts_count = site.posts | size %}
-
-{% for category in sort_categories %}
-  {% assign category_name = category | first %}
-  {% assign posts_of_category = category | last %}
-  {% assign first_post = posts_of_category | first %}
-
-  {% if category_name == first_post.categories[0] %}
-    {% assign top_categories_count = top_categories_count | plus: 1 %}
-    
-    {% assign sub_categories = '' | split: '' %}
-    {% for post in posts_of_category %}
-      {% assign second_category = post.categories[1] %}
-      {% if second_category %}
-        {% unless sub_categories contains second_category %}
-          {% assign sub_categories = sub_categories | push: second_category %}
-        {% endunless %}
-      {% endif %}
-    {% endfor %}
-    
-    {% assign sub_size = sub_categories | size %}
-    {% assign sub_categories_count = sub_categories_count | plus: sub_size %}
-  {% endif %}
-{% endfor %}
-
+{% include lang.html %} {% assign HEAD_PREFIX = 'h_' %} {% assign LIST_PREFIX =
+'l_' %} {% assign sort_categories = site.categories | sort %} {% comment %}
+========================================== 1. Calculate Global Stats first
+========================================== {% endcomment %} {% assign
+top_categories_count = 0 %} {% assign sub_categories_count = 0 %} {% assign
+total_posts_count = site.posts | size %} {% for category in sort_categories %}
+{% assign category_name = category | first %} {% assign posts_of_category =
+category | last %} {% assign first_post = posts_of_category | first %} {% if
+category_name == first_post.categories[0] %} {% assign top_categories_count =
+top_categories_count | plus: 1 %} {% assign sub_categories = '' | split: '' %}
+{% for post in posts_of_category %} {% assign second_category =
+post.categories[1] %} {% if second_category %} {% unless sub_categories contains
+second_category %} {% assign sub_categories = sub_categories | push:
+second_category %} {% endunless %} {% endif %} {% endfor %} {% assign sub_size =
+sub_categories | size %} {% assign sub_categories_count = sub_categories_count |
+plus: sub_size %} {% endif %} {% endfor %}
 
 <div class="ctg-container-single">
-
-  {% comment %} ==========================================
-    2. Overview / Stats Header
-  ========================================== {% endcomment %}
+  {% comment %} ========================================== 2. Overview / Stats
+  Header ========================================== {% endcomment %}
   <div class="ctg-overview">
     <div class="ctg-stats-row">
       <div class="stat-item">
@@ -64,13 +42,18 @@ layout: page
     </div>
   </div>
 
-  {% comment %} ==========================================
-    3. Controls (Search & Sort)
-  ========================================== {% endcomment %}
+  {% comment %} ========================================== 3. Controls (Search &
+  Sort) ========================================== {% endcomment %}
   <div class="ctg-controls">
     <div class="ctg-search-wrapper">
       <i class="fas fa-search"></i>
-      <input type="text" id="ctg-search-input" class="ctg-search" placeholder="카테고리 검색..." autocomplete="off">
+      <input
+        type="text"
+        id="ctg-search-input"
+        class="ctg-search"
+        placeholder="카테고리 검색..."
+        autocomplete="off"
+      />
     </div>
     <div class="ctg-sort-wrapper">
       <button class="ctg-sort-btn active" data-sort="name">이름순</button>
@@ -78,170 +61,122 @@ layout: page
     </div>
   </div>
 
-  {% comment %} ==========================================
-    4. Category List (Cards)
-  ========================================== {% endcomment %}
+  {% comment %} ========================================== 4. Category List
+  (Cards) ========================================== {% endcomment %}
   <div class="ctg-list-container" id="ctg-list-container">
-    {% assign group_index = 0 %}
+    {% assign group_index = 0 %} {% for category in sort_categories %} {% assign
+    category_name = category | first %} {% assign posts_of_category = category |
+    last %} {% assign first_post = posts_of_category | first %} {% if
+    category_name == first_post.categories[0] %} {% comment %} Metadata matching
+    {% endcomment %} {% assign meta = nil %} {% for item in site.data.categories
+    %} {% if item.name == category_name %} {% assign meta = item %} {% endif %}
+    {% endfor %} {% assign ctg_color = meta.color | default: '#0288d1' %} {%
+    assign ctg_gradient = meta.gradient | default: 'linear-gradient(135deg,
+    #4fc3f7, #0288d1)' %} {% assign ctg_icon = meta.icon | default: 'fa-folder'
+    %} {% assign sub_categories = '' | split: '' %} {% for post in
+    posts_of_category %} {% assign second_category = post.categories[1] %} {% if
+    second_category %} {% unless sub_categories contains second_category %} {%
+    assign sub_categories = sub_categories | push: second_category %} {%
+    endunless %} {% endif %} {% endfor %} {% assign sub_categories =
+    sub_categories | sort %} {% assign sub_categories_size = sub_categories |
+    size %} {% assign top_posts_size = site.categories[category_name] | size %}
 
-    {% for category in sort_categories %}
-      {% assign category_name = category | first %}
-      {% assign posts_of_category = category | last %}
-      {% assign first_post = posts_of_category | first %}
-
-      {% if category_name == first_post.categories[0] %}
-        
-        {% comment %} Metadata matching {% endcomment %}
-        {% assign meta = nil %}
-        {% for item in site.data.categories %}
-          {% if item.name == category_name %}
-            {% assign meta = item %}
-          {% endif %}
-        {% endfor %}
-
-        {% assign ctg_color = meta.color | default: '#0288d1' %}
-        {% assign ctg_gradient = meta.gradient | default: 'linear-gradient(135deg, #4fc3f7, #0288d1)' %}
-        {% assign ctg_icon = meta.icon | default: 'fa-folder' %}
-        
-        {% assign sub_categories = '' | split: '' %}
-        {% for post in posts_of_category %}
-          {% assign second_category = post.categories[1] %}
-          {% if second_category %}
-            {% unless sub_categories contains second_category %}
-              {% assign sub_categories = sub_categories | push: second_category %}
-            {% endunless %}
-          {% endif %}
-        {% endfor %}
-
-        {% assign sub_categories = sub_categories | sort %}
-        {% assign sub_categories_size = sub_categories | size %}
-        {% assign top_posts_size = site.categories[category_name] | size %}
-
-        <article class="ctg-card-single" 
-                 data-name="{{ category_name | downcase }}" 
-                 data-count="{{ top_posts_size }}"
-                 style="--category-color: {{ ctg_color }}; --category-gradient: {{ ctg_gradient }};">
-          
-          <div class="ctg-card-main">
-            {% capture _category_url %}/categories/{{ category_name | slugify | url_encode }}/{% endcapture %}
-            <a href="{{ _category_url | relative_url }}" class="ctg-main-link">
-              <div class="ctg-card-left">
-                <div class="ctg-icon-wrapper" style="background: var(--category-gradient);">
-                  <i class="fas {{ ctg_icon }} fa-fw"></i>
-                </div>
-                <div class="ctg-info">
-                  <h3 class="ctg-name">{{ category_name }}</h3>
-                  {% if meta.description %}
-                    <p class="ctg-desc">{{ meta.description }}</p>
-                  {% endif %}
-                </div>
-              </div>
-
-              <div class="ctg-card-right">
-                <div class="ctg-stats-badge">
-                  <span class="count">{{ top_posts_size }}</span>
-                  <span class="label">posts</span>
-                </div>
-              </div>
-            </a>
+    <article
+      class="ctg-card-single"
+      data-name="{{ category_name | downcase }}"
+      data-count="{{ top_posts_size }}"
+      style="--category-color: {{ ctg_color }}; --category-gradient: {{ ctg_gradient }};"
+    >
+      <div class="ctg-card-main">
+        {% capture _category_url %}/categories/{{ category_name | slugify |
+        url_encode }}/{% endcapture %}
+        <a href="{{ _category_url | relative_url }}" class="ctg-main-link">
+          <div class="ctg-card-left">
+            <div
+              class="ctg-icon-wrapper"
+              style="background: var(--category-gradient)"
+            >
+              <i class="fas {{ ctg_icon }} fa-fw"></i>
+            </div>
+            <div class="ctg-info">
+              <h3 class="ctg-name">{{ category_name }}</h3>
+              {% if meta.description %}
+              <p class="ctg-desc">{{ meta.description }}</p>
+              {% endif %}
+            </div>
           </div>
 
-          <!-- Series Progress -->
-          {% if meta.series %}
-          <div class="ctg-progress-wrapper">
-            {% assign percent = meta.current | times: 100.0 | divided_by: meta.total | round %}
-            <div class="ctg-progress-bar">
-              <div class="ctg-progress-fill" style="width: {{ percent }}%; background: var(--category-gradient);"></div>
+          <div class="ctg-card-right">
+            <div class="ctg-stats-badge">
+              <span class="count">{{ top_posts_size }}</span>
+              <span class="label">posts</span>
             </div>
-            <span class="ctg-progress-text">{{ percent }}% ({{ meta.current }}/{{ meta.total }})</span>
           </div>
-          {% endif %}
+        </a>
+      </div>
 
-          <!-- Subcategories Toggle -->
-          {% if sub_categories_size > 0 %}
-            <div class="ctg-sub-toggle-wrapper">
-              <button class="ctg-collapse-btn" data-bs-toggle="collapse" data-bs-target="#{{ LIST_PREFIX }}{{ group_index }}" aria-expanded="false">
-                <i class="fas fa-fw fa-chevron-right ctg-chevron"></i>
-                <span class="toggle-text">{{ sub_categories_size }} 하위 카테고리</span>
-              </button>
-            </div>
-
-            <div id="{{ LIST_PREFIX }}{{ group_index }}" class="collapse ctg-sub-collapse">
-              <div class="ctg-sub-list">
-                {% for sub_category in sub_categories %}
-                  {% assign posts_size = site.categories[sub_category] | size %}
-                  {% capture _sub_ctg_url %}/categories/{{ sub_category | slugify | url_encode }}/{% endcapture %}
-                  <a href="{{ _sub_ctg_url | relative_url }}" class="ctg-sub-item">
-                    <div class="ctg-sub-left">
-                      <i class="far fa-folder fa-fw sub-ctg-icon" style="color: var(--category-color);"></i>
-                      <span class="ctg-sub-name">{{ sub_category }}</span>
-                    </div>
-                    <span class="ctg-sub-count">{{ posts_size }} post{% if posts_size > 1 %}s{% endif %}</span>
-                  </a>
-                {% endfor %}
-              </div>
-            </div>
-          {% endif %}
-
-        </article>
-
-        {% assign group_index = group_index | plus: 1 %}
+      <!-- Series Progress -->
+      {% if meta.series %}
+      <div class="ctg-progress-wrapper">
+        {% assign percent = meta.current | times: 100.0 | divided_by: meta.total
+        | round %}
+        <div class="ctg-progress-bar">
+          <div
+            class="ctg-progress-fill"
+            style="width: {{ percent }}%; background: var(--category-gradient);"
+          ></div>
+        </div>
+        <span class="ctg-progress-text"
+          >{{ percent }}% ({{ meta.current }}/{{ meta.total }})</span
+        >
+      </div>
       {% endif %}
-    {% endfor %}
+
+      <!-- Subcategories Toggle -->
+      {% if sub_categories_size > 0 %}
+      <div class="ctg-sub-toggle-wrapper">
+        <button
+          class="ctg-collapse-btn"
+          data-bs-toggle="collapse"
+          data-bs-target="#{{ LIST_PREFIX }}{{ group_index }}"
+          aria-expanded="false"
+        >
+          <i class="fas fa-fw fa-chevron-right ctg-chevron"></i>
+          <span class="toggle-text"
+            >{{ sub_categories_size }} 하위 카테고리</span
+          >
+        </button>
+      </div>
+
+      <div
+        id="{{ LIST_PREFIX }}{{ group_index }}"
+        class="collapse ctg-sub-collapse"
+      >
+        <div class="ctg-sub-list">
+          {% for sub_category in sub_categories %} {% assign posts_size =
+          site.categories[sub_category] | size %} {% capture _sub_ctg_url
+          %}/categories/{{ sub_category | slugify | url_encode }}/{% endcapture
+          %}
+          <a href="{{ _sub_ctg_url | relative_url }}" class="ctg-sub-item">
+            <div class="ctg-sub-left">
+              <i
+                class="far fa-folder fa-fw sub-ctg-icon"
+                style="color: var(--category-color)"
+              ></i>
+              <span class="ctg-sub-name">{{ sub_category }}</span>
+            </div>
+            <span class="ctg-sub-count"
+              >{{ posts_size }} post{% if posts_size > 1 %}s{% endif %}</span
+            >
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </article>
+
+    {% assign group_index = group_index | plus: 1 %} {% endif %} {% endfor %}
   </div>
 </div>
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  const searchInput = document.getElementById("ctg-search-input");
-  const sortBtns = document.querySelectorAll(".ctg-sort-btn");
-  const container = document.getElementById("ctg-list-container");
-  let cards = Array.from(container.querySelectorAll(".ctg-card-single"));
-
-  // 1. Search filter
-  searchInput.addEventListener("input", function (e) {
-    const query = e.target.value.toLowerCase();
-    cards.forEach(card => {
-      const name = card.getAttribute("data-name");
-      if (name.includes(query)) {
-        card.style.display = "";
-      } else {
-        card.style.display = "none";
-      }
-    });
-  });
-
-  // 2. Sort functions
-  sortBtns.forEach(btn => {
-    btn.addEventListener("click", function () {
-      sortBtns.forEach(b => b.classList.remove("active"));
-      this.classList.add("active");
-      const sortBy = this.getAttribute("data-sort");
-
-      cards.sort((a, b) => {
-        if (sortBy === "name") {
-          return a.getAttribute("data-name").localeCompare(b.getAttribute("data-name"));
-        } else if (sortBy === "count") {
-          return parseInt(b.getAttribute("data-count")) - parseInt(a.getAttribute("data-count"));
-        }
-      });
-
-      // Re-append to container
-      cards.forEach(card => container.appendChild(card));
-    });
-  });
-
-  // 3. Chevron rotate on collapse toggle is handled via Boostrap's events
-  const collapses = document.querySelectorAll('.ctg-sub-collapse');
-  collapses.forEach(coll => {
-    coll.addEventListener('show.bs.collapse', function () {
-      const btn = this.parentElement.querySelector('.ctg-collapse-btn');
-      if (btn) btn.classList.add('open');
-    });
-    coll.addEventListener('hide.bs.collapse', function () {
-      const btn = this.parentElement.querySelector('.ctg-collapse-btn');
-      if (btn) btn.classList.remove('open');
-    });
-  });
-});
-</script>
+<script src="{{ '/assets/js/categories-sort.js' | relative_url }}"></script>
