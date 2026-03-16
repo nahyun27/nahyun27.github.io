@@ -6,7 +6,7 @@ categories: [Algorithm, Math]
 tags: [algorithm, fibonacci, dp, matrix, pisano, fast-doubling, 피보나치]
 description: "알고리즘 Deep Dive #6 – 피보나치: 단순 재귀 O(2^N)부터 행렬 거듭제곱 O(log N)까지, N의 크기에 따라 풀이를 선택하는 방법"
 image:
-  path: /assets/img/algorithm/fibonacci.png
+  path: /assets/img/posts/algorithm/fibonacci.png
   alt: Fibonacci
 math: true
 mermaid: false
