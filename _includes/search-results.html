@@ -1,0 +1,12 @@
+<!-- The Search results -->
+
+<div id="search-result-wrapper" class="d-flex justify-content-center d-none">
+  <div class="col-11 content">
+    <div id="search-hints">
+      {% include_cached trending-tags.html lang=include.lang %}
+    </div>
+    <!-- Custom Search Info Bar for Result Count -->
+    <div id="search-info-bar" class="text-muted mb-3" style="display: none; font-size: 0.9rem;"></div>
+    <div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div>
+  </div>
+</div>

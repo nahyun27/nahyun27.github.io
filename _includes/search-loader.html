@@ -1,0 +1,87 @@
+<!--
+  Jekyll Simple Search loader
+  See: <https://github.com/christian-fei/Simple-Jekyll-Search>
+-->
+
+{% capture result_elem %}
+  <article class="px-1 px-sm-2 px-lg-4 px-xl-0 search-post-item">
+    <header>
+      <h2 class="search-post-title"><a href="{url}" class="search-post-link">{title}</a></h2>
+      <div class="search-post-separator"></div>
+      <div class="search-post-meta post-meta d-flex flex-column flex-sm-row mt-1 mb-2">
+        {categories}
+        {tags}
+      </div>
+    </header>
+    <p class="search-post-desc">{content}</p>
+    <div class="search-read-more">Read more &rarr;</div>
+  </article>
+{% endcapture %}
+
+{% capture not_found %}
+  <div class="search-empty-state">
+    <i class="fas fa-search"></i>
+    <p class="search-empty-title">Oops! No results found.</p>
+    <p class="search-empty-desc">We couldn't find anything matching your query.</p>
+  </div>
+{% endcapture %}
+
+<script>
+  {% comment %} Note: dependent library will be loaded in `js-selector.html` {% endcomment %}
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('search-input');
+    const resultsContainer = document.getElementById('search-results');
+    const searchInfoBar = document.getElementById('search-info-bar');
+
+    if (searchInput) {
+      searchInput.addEventListener('keyup', () => {
+        setTimeout(() => {
+          const query = searchInput.value;
+          if (query.trim()) {
+            const count = resultsContainer.querySelectorAll('.search-post-item').length;
+            if (searchInfoBar) {
+              searchInfoBar.innerHTML = `<span class="search-count-text">${count} result${count !== 1 ? 's' : ''} for '<strong>${query}</strong>'</span>`;
+              searchInfoBar.style.display = 'block';
+            }
+          } else {
+            if (searchInfoBar) searchInfoBar.style.display = 'none';
+          }
+        }, 150);
+      });
+    }
+
+    SimpleJekyllSearch({
+      searchInput: searchInput,
+      resultsContainer: document.getElementById('search-results'),
+      json: '{{ '/assets/js/data/search.json' | relative_url }}',
+      searchResultTemplate: '{{ result_elem | strip_newlines }}',
+      noResultsText: '{{ not_found }}',
+      templateMiddleware: function(prop, value, template) {
+        if (prop === 'categories') {
+          if (value === '') {
+            return `${value}`;
+          } else {
+            return `<div class="search-meta-category">${value}</div>`;
+          }
+        }
+
+        if (prop === 'tags') {
+          if (value === '') {
+            return `${value}`;
+          } else {
+            const tagArray = value.split(',').map(t => t.trim()).filter(t => t);
+            if (tagArray.length === 0) return '';
+            let html = '';
+            for(let i=0; i<Math.min(3, tagArray.length); i++) {
+              html += `<div class="search-meta-tag">${tagArray[i]}</div>`;
+            }
+            if (tagArray.length > 3) {
+              html += `<div class="search-meta-tag search-meta-tag-more">+${tagArray.length - 3} more</div>`;
+            }
+            return `<div class="search-meta-tags-container">${html}</div>`;
+          }
+        }
+      }
+    });
+  });
+</script>
