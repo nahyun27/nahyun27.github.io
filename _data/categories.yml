@@ -70,9 +70,9 @@
   total: 5
   current: 3
 
-- name: Program Synthesis
-  slug: program-synthesis
-  description: 프로그램 합성(Program Synthesis) 및 정형 기법
+- name: PL / Formal Methods
+  slug: pl-formal-methods
+  description: 프로그래밍 언어의 뼈대와 프로그램 합성(Program Synthesis) 및 정형 기법
   icon: fa-code-branch
   color: "#6366f1"
   gradient: "linear-gradient(135deg, #6366f1, #4f46e5)"

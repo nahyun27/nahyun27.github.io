@@ -2,8 +2,8 @@
 
 layout: post
 title: "[Programming Languages #5] Polymorphism: 하나의 코드가 여러 타입을 가지는 이유"
-date: 2026-03-22 00:00:00 +0900
-categories: [Programming Languages, Formal Methods]
+date: 2026-03-18 00:00:00 +0900
+categories: [PL / Formal Methods, Programming Languages]
 tags: [polymorphism, let-polymorphism, type inference, type system, formal methods]
 description: "Programming Languages 시리즈 5편 – 다형성의 개념과 let-polymorphism을 통해 하나의 함수가 여러 타입에서 동작하는 원리 이해하기"
 image:

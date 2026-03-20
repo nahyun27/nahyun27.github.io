@@ -3,7 +3,7 @@
 layout: post
 title: "[Programming Languages #1] 프로그래밍 언어는 무엇을 배우는 학문인가?"
 date: 2026-03-17 00:00:00 +0900
-categories: [Programming Languages, Formal Methods]
+categories: [PL / Formal Methods, Programming Languages]
 tags: [programming languages, syntax, semantics, inductive definition, inference rules, formal methods]
 description: "Programming Languages 시리즈 1편 – 프로그래밍 언어를 정의하는 방법: Inductive Definition, Syntax, Semantics, Inference Rules"
 image:

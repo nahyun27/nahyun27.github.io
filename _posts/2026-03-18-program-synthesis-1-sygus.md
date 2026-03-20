@@ -3,7 +3,7 @@
 layout: post
 title: "[Program Synthesis #1] SyGuS 입문: 프로그램을 자동으로 만드는 방법"
 date: 2026-03-18 00:00:00 +0900
-categories: [Program Synthesis, Formal Methods]
+categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, sygus, sat, logic, synthesis, formal methods]
 description: "Program Synthesis 시리즈 1편 – SyGuS를 이해하기 위한 논리와 SAT(Satisfiability) 개념 정리"
 image:

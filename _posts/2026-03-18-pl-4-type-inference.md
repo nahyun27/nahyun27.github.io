@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "[Programming Languages #4] Type Inference: 타입을 자동으로 추론하는 방법"
-date: 2026-03-21 00:00:00 +0900
-categories: [Programming Languages, Formal Methods]
+date: 2026-03-18 00:00:00 +0900
+categories: [PL / Formal Methods, Programming Languages]
 tags: [type inference, unification, type system, polymorphism, formal methods]
 description: "Programming Languages 시리즈 4편 – 타입을 명시하지 않아도 자동으로 추론하는 원리와 Unification 알고리즘 이해하기"
 image:

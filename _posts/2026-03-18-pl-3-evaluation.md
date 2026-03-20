@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "[Programming Languages #3] 타입 시스템: 프로그램이 안전하다는 것을 어떻게 보장할까?"
-date: 2026-03-20 00:00:00 +0900
-categories: [Programming Languages, Formal Methods]
+date: 2026-03-18 00:00:00 +0900
+categories: [PL / Formal Methods, Programming Languages]
 tags: [type system, typing rules, type checker, soundness, formal methods]
 description: "Programming Languages 시리즈 3편 – 타입 시스템이 무엇인지, 그리고 프로그램의 안전성을 어떻게 보장하는지 이해하기"
 image:

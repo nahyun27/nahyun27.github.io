@@ -3,7 +3,7 @@
 layout: post
 title: "[Programming Languages #2] Structural Induction과 프로그램의 의미 정의"
 date: 2026-03-18 00:00:00 +0900
-categories: [Programming Languages, Formal Methods]
+categories: [PL / Formal Methods, Programming Languages]
 tags: [programming languages, structural induction, semantics, evaluation, environment, formal methods]
 description: "Programming Languages 시리즈 2편 – Structural Induction과 evaluation relation을 통해 프로그램의 의미를 수학적으로 정의하는 방법"
 image:
