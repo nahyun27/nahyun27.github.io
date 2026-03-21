@@ -2,7 +2,7 @@
 
 layout: post
 title: "[Program Synthesis #2] SyGuS 심화: SMT와 Grammar로 프로그램 합성 이해하기"
-date: 2026-03-19 00:00:00 +0900
+date: 2026-03-20 00:00:00 +0900
 categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, sygus, smt, first-order-logic, grammar, solver, formal methods]
 description: "Program Synthesis 시리즈 2편 – First-Order Logic, SMT, Grammar를 통해 SyGuS가 실제로 어떻게 동작하는지 이해하기"
