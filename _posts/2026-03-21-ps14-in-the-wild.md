@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, program repair, superoptimization, llm, real world, applications]
 description: "Program Synthesis 시리즈 14편 – Superoptimization, Program Repair, LLM 기반 코드 생성까지 실제 환경에서의 synthesis 응용 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/wild.png
+  path: /assets/img/posts/program-synthesis/ps14.png
   alt: Program Synthesis in the Wild
 math: true
 mermaid: false

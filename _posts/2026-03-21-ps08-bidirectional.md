@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, bidirectional search, top down, bottom up, search strategy, synthesis]
 description: "Program Synthesis 시리즈 8편 – Top-down과 Bottom-up 탐색을 결합하여 search space를 효과적으로 줄이는 Bidirectional Search 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/bidirectional.png
+  path: /assets/img/posts/program-synthesis/ps08.png
   alt: Bidirectional Search
 math: true
 mermaid: false

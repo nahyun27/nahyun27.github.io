@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, constraint solving, smt, sat, sketch, formal methods]
 description: "Program Synthesis 시리즈 10편 – SAT/SMT 기반으로 프로그램을 제약 문제로 변환하여 해결하는 Constraint-Based Synthesis 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/constraint.png
+  path: /assets/img/posts/program-synthesis/ps10.png
   alt: Constraint Based Synthesis
 math: true
 mermaid: false

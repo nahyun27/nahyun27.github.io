@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, representation, vsa, search space, symbolic, formal methods]
 description: "Program Synthesis 시리즈 6편 – 프로그램을 하나씩 탐색하는 대신, 탐색 공간 자체를 압축하는 Representation-Based Synthesis의 핵심 아이디어 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/representation.png
+  path: /assets/img/posts/program-synthesis/ps06.png
   alt: Representation Based Synthesis
 math: true
 mermaid: false

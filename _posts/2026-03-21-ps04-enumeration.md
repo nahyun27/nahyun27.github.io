@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, enumeration, search, sygus, grammar, brute force, formal methods]
 description: "Program Synthesis 시리즈 4편 – Grammar 기반으로 프로그램을 실제로 생성하는 가장 기본적인 방법인 Enumerative Synthesis 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/enumeration.png
+  path: /assets/img/posts/program-synthesis/ps04.png
   alt: Enumerative Search
 math: true
 mermaid: false

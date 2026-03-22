@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, representation, vsa, fta, egraph, equality saturation, formal methods]
 description: "Program Synthesis 시리즈 7편 – Version Space Algebra를 넘어, Finite Tree Automata와 E-graph를 통해 다양한 프로그램 표현 방식 비교하기"
 image:
-  path: /assets/img/posts/program-synthesis/representation-advanced.png
+  path: /assets/img/posts/program-synthesis/ps07.png
   alt: FTA E-graph Representation
 math: true
 mermaid: false

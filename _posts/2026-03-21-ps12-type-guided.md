@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, type guided synthesis, type system, lambda calculus, inhabitation, formal methods]
 description: "Program Synthesis 시리즈 12편 – 타입 정보를 활용해 프로그램 탐색 공간을 구조적으로 제한하는 Type-Guided Synthesis 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/type.png
+  path: /assets/img/posts/program-synthesis/ps12.png
   alt: Type Guided Synthesis
 math: true
 mermaid: false

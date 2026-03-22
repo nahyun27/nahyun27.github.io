@@ -7,7 +7,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, sygus, smt, first-order-logic, grammar, solver, formal methods]
 description: "Program Synthesis 시리즈 2편 – First-Order Logic, SMT, Grammar를 통해 SyGuS가 실제로 어떻게 동작하는지 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/sygus2.png
+  path: /assets/img/posts/program-synthesis/ps02.png
   alt: SyGuS SMT Grammar
 math: true
 mermaid: false

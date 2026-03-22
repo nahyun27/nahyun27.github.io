@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, search prioritization, enumeration, pcfg, probabilistic, heuristic, formal methods]
 description: "Program Synthesis 시리즈 5편 – Enumerative Synthesis의 한계를 극복하기 위한 Search Prioritization과 확률 기반 탐색 전략 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/prioritization.png
+  path: /assets/img/posts/program-synthesis/ps05.png
   alt: Search Prioritization
 math: true
 mermaid: false

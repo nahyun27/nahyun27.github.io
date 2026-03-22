@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, deductive synthesis, formal methods, specification, derivation, program correctness]
 description: "Program Synthesis 시리즈 13편 – specification으로부터 transformation rule을 통해 프로그램을 직접 유도하는 Deductive Synthesis 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/deductive.png
+  path: /assets/img/posts/program-synthesis/ps13.png
   alt: Deductive Synthesis
 math: true
 mermaid: false

@@ -6,7 +6,7 @@ categories: [PL / Formal Methods, Program Synthesis]
 tags: [program synthesis, stochastic search, local search, cost function, superoptimization, heuristic]
 description: "Program Synthesis 시리즈 9편 – 확률 기반 탐색과 local search를 통해 넓은 프로그램 공간을 효율적으로 탐색하는 방법 이해하기"
 image:
-  path: /assets/img/posts/program-synthesis/stochastic.png
+  path: /assets/img/posts/program-synthesis/ps09.png
   alt: Stochastic Search
 math: true
 mermaid: false
