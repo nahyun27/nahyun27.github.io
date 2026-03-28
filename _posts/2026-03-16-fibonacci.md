@@ -713,7 +713,7 @@ $$
 > 순수 대수로 증명하면 행렬 전개가 필요하지만,  
 > 경로 해석으로 보면 **왜 제곱이 나오는지** 그림 하나로 바로 보인다.
 
-![F(2k+1) 경로 분할 직관](/assets/img/posts/algorithm/fast_doubling.png)
+![F(2k+1) 경로 분할 직관](/assets/img/posts/algorithm/fast_doubling.svg)
 
 1칸 또는 2칸씩 이동해서 `2k+1`칸 가는 경우를 세는 문제로 생각해보면,  
 전체 경로를 **중간 지점에서 두 부분으로 쪼갤 수 있다.**
