@@ -713,7 +713,7 @@ $$
 > 순수 대수로 증명하면 행렬 전개가 필요하지만,  
 > 경로 해석으로 보면 **왜 제곱이 나오는지** 그림 하나로 바로 보인다.
 
-![F(2k+1) 경로 분할 직관](/assets/img/posts/algorithm/fast_doubling.svg)
+![F(2k+1) 경로 분할 직관](/assets/img/posts/algorithm/fast_doubling.png)
 
 1칸 또는 2칸씩 이동해서 `2k+1`칸 가는 경우를 세는 문제로 생각해보면,  
 전체 경로를 **중간 지점에서 두 부분으로 쪼갤 수 있다.**
@@ -775,7 +775,7 @@ return c, d                    # n이 짝수면 F(2k), F(2k+1)
 `n & 1` 은 `n % 2 == 1` 과 같다. n이 홀수인지 체크하는 것이다.
 
 예를 들어 `n = 5` 를 구한다고 해보자.
-```python
+```
 fast_doubling(5)
   → fast_doubling(2)   # 5 >> 1 = 2
       → fast_doubling(1)   # 2 >> 1 = 1
